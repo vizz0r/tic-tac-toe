@@ -36,13 +36,13 @@ h1 {
 	background: #369f74 !important;
 }
 
-.disabled {
+/* .disabled {
 	filter: brightness(105%);
-}
+} 
 
 .disabled img {
 	opacity: 0.35 !important;
-}
+} */
 
 
 /* Style for each Tic-Tac-Toe cell */

@@ -241,11 +241,9 @@ document.addEventListener('DOMContentLoaded', () => {
     return false; // ✅ If no win or draw, return false so move sound can play
 }
 
+	let hasGameStarted = false; // ✅ Track whether the game has actually started before
 
-
-
-
-	function restartGame() {
+	function restartGame(userTriggered = false) {
 		gameActive = true;
 		gameState.fill("");
 		cells.forEach(cell => {
@@ -256,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		// ✅ Randomly pick who starts
 		currentPlayer = Math.random() < 0.5 ? "X" : "O";
 		let startingPlayerName = currentPlayer === "X" ? playerXName : playerOName;
-		statusDisplay.textContent = `${startingPlayerName} starts first`;
+		statusDisplay.textContent = `${startingPlayerName} starts first.`;
 
 		// ✅ Reset `#currentPlayerContainer` and re-add `currentPlayerImg`
 		document.getElementById("currentPlayerContainer").innerHTML = `
@@ -280,9 +278,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		// ✅ Swap back to game title at the start of a new game
 		swapTitles(false);
-		
-		playSound('sounds/restart.mp3');
+
+		// ✅ Only play restart sound if the game was restarted **by user action** AND **not on first page load**
+		if (userTriggered && hasGameStarted) {
+			playSound('sounds/restart.mp3');
+		}
+
+		hasGameStarted = true; // ✅ Mark game as "started" after first manual restart
 	}
+
 
 
 
