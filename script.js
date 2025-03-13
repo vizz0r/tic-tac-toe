@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateResetScoreButton();
 
         // ✅ Restart game after resetting score
-        restartGame();
+        restartGame(true);
     }
 
 	// ✅ User-triggered restart (ensures restart sound only plays on actual restart button clicks)
