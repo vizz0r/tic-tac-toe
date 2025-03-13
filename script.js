@@ -306,11 +306,13 @@ document.addEventListener('DOMContentLoaded', () => {
         restartGame();
     }
 
-    restartBtn.addEventListener('click', restartGame);
+	// ✅ User-triggered restart (ensures restart sound only plays on actual restart button clicks)
+    restartBtn.addEventListener('click', () => restartGame(true));
     resetScoreBtn.addEventListener('click', resetScore);
     cells.forEach(cell => cell.addEventListener('click', handleCellClick));
 
-    restartGame();
+    // ✅ Start the game (initial load, no sound)
+    restartGame(false);
 });
 
 
