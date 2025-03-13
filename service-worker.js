@@ -1,10 +1,11 @@
-const CACHE_NAME = 'my-pwa-cache-v2'; // ✅ Updated cache version (forces refresh)
+const CACHE_NAME = 'my-pwa-cache-v3'; // ✅ Updated cache version (forces refresh)
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/styles.css',
-    '/app.js',
-    '/manifest.json'
+    '/tic-tac-toe/',
+    '/tic-tac-toe/index.html',
+    '/tic-tac-toe/styles.css',
+    '/tic-tac-toe/script.js',
+    '/tic-tac-toe/app.js',
+    '/tic-tac-toe/manifest.json'
 ];
 
 // ✅ Install event: Cache resources and force activation of new service worker
@@ -30,7 +31,12 @@ self.addEventListener('fetch', event => {
                     return response;
                 });
             })
-            .catch(() => caches.match(event.request)) // ✅ If offline, serve cached version
+            .catch(() => {
+                // ✅ If offline or page not found, return `index.html`
+                return caches.match(event.request).then(response => {
+                    return response || caches.match('/tic-tac-toe/index.html');
+                });
+            })
     );
 });
 

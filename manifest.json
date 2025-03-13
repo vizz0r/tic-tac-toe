@@ -3,19 +3,19 @@
     "name": "Tic-Tac-Toe Game",
     "icons": [
         {
-            "src": "icons/192x192.png",
+            "src": "/tic-tac-toe/icons/192x192.png",
             "type": "image/png",
             "sizes": "192x192"
         },
         {
-            "src": "icons/512x512.png",
+            "src": "/tic-tac-toe/icons/512x512.png",
             "type": "image/png",
             "sizes": "512x512"
         }
     ],
-    "start_url": "/",
+	"start_url": "/tic-tac-toe/index.html",
     "background_color": "#ffffff",
     "display": "standalone",
-    "scope": "/",
+	"scope": "/tic-tac-toe/",
     "theme_color": "#3367D6"
 }
