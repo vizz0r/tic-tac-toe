@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe Game</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+<button id="resetScoreBtn">Reset Score</button>
+  <div class="confetti-wrapper">
+    <!-- Confetti elements will be created using CSS -->
+  </div>
+    <div class="container">
+        <h1 id="gameTitle">Tic-Tac-Toe Game</h1>
+		<h1 id="gameScore">
+			<span id="playerXName">Alex (<span id="playerXScore">0</span>)</span>
+			&nbsp;v&nbsp; 
+			<span id="playerOName">Martin (<span id="playerOScore">0</span>)</span>
+		</h1>
+		<div class="current-player" id="currentPlayerContainer">
+			<img id="currentPlayerImg" src="" alt="Starting player">
+		</div>
+		<div id="status">Player X's turn</div>
+		<div id="game">
+			<div class="board" id="board">
+				<div class="cell" data-cell></div>
+				<div class="cell" data-cell></div>
+				<div class="cell" data-cell></div>
+				<div class="cell" data-cell></div>
+				<div class="cell" data-cell></div>
+				<div class="cell" data-cell></div>
+				<div class="cell" data-cell></div>
+				<div class="cell" data-cell></div>
+				<div class="cell" data-cell></div>
+			</div>
+		</div>
+
+		<button id="restartBtn">Restart Game</button>
+    </div>
+
+    <!-- Register Service Worker -->
+    <script src="app.js"></script>
+    <!-- Tic-Tac-Toe Game Logic -->
+    <script src="script.js"></script>
+</body>
+</html>

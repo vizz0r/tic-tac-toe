@@ -1,0 +1,370 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    background-color: #f2f2f2;
+	margin: 0; 
+	padding: 0;
+	    user-select: none;
+}
+
+h1 {
+    color: #333;
+	margin: 0;
+	padding: 60px 0 20px 0;
+}
+
+/* Game Board Layout */
+#board, .board {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(3, 100px);
+    justify-content: center;
+    margin: 20px auto;
+    width: 304px; /* Adjusted for proper alignment */
+    background-color: #666; /* Gray grid lines */
+    gap: 2px; /* Creates the grid line effect */
+    padding: 2px; /* Ensures outer grid lines appear */
+}
+
+.disabled, .winning-cell {
+    pointer-events: none;  /* prevents further clicks/taps */
+
+}
+
+.winning-cell {
+	background: #369f74 !important;
+}
+
+.disabled {
+	filter: brightness(105%);
+}
+
+.disabled img {
+	opacity: 0.35 !important;
+}
+
+
+/* Style for each Tic-Tac-Toe cell */
+.cell {
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.3s;
+}
+
+/* ✅ Highlight cells when selected */
+.cell.blue-bg {
+    background-color: #d3edff; /* Light blue */
+}
+
+.cell.orange-bg {
+    background-color: #ffedcd; /* Light orange */
+}
+
+/* ✅ Style for player images inside cells */
+.cell img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+    position: absolute;
+}
+
+/* ✅ Hover effect */
+.cell:hover {
+    filter: brightness(94%);
+}
+
+/* ✅ Add perspective to make it feel 3D */
+.current-player {
+    display: flex;
+    justify-content: center;
+    perspective: 1000px; /* ✅ Creates a deeper 3D effect */
+}
+
+/* ✅ Apply the 3D flip effect */
+.current-player img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    transition: transform 0.2s ease-in-out;
+    transform-origin: center;
+    backface-visibility: hidden; /* ✅ Hides the image when flipped */
+}
+
+/* ✅ Flip effect */
+.current-player img.flip {
+    transform: rotateY(180deg);
+}
+
+
+/* ✅ First Player: Blue Border, Opponent: Orange Border */
+.current-player img.blue-border {
+    outline: 6px solid #00a8ff !important;
+    outline-offset: 4px;
+}
+
+.current-player img.orange-border {
+    outline: 6px solid #ff9d00 !important;
+    outline-offset: 4px;
+}
+
+/* ✅ Restart Button */
+#restartBtn {
+    padding: 10px 20px;
+    font-size: 26px;
+    cursor: pointer;
+    background-color: #5e5e5e;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    margin-top: 10px;
+    display: none;
+}
+
+#restartBtn:hover {
+    background: #494949;
+}
+
+/* ✅ Show restart button when game ends */
+#restartBtn.show, #resetScoreBtn.show {
+    display: inline-block;
+}
+
+#resetScoreBtn {
+    padding: 9px 12px;
+    font-size: 20px;
+    cursor: pointer;
+    background-color: #ddd;
+    color: #5e5e5e;
+    border: none;
+    display: none;
+	position: absolute;
+	top: 0; 
+	right: 0;
+	border-bottom-left-radius: 5px;
+}
+
+#resetScoreBtn:hover {
+	filter: brightness(95%);
+}
+
+/* ✅ Status Display */
+#status {
+    margin: 15px 10px 0;
+    font-size: 30px;
+    padding: 10px 12px;
+    display: inline-flex;
+    border-radius: 5px;
+	font-weight: 600;
+}
+
+.draw {
+	color: #5e5e5e !important;
+}
+
+/* ✅ Style for the draw-state container */
+.draw-container {
+    display: flex;
+    gap: 50px; /* Space between images */
+    justify-content: center;
+    align-items: center;
+	/* transform: rotateX(180deg); */
+}
+
+/* ✅ Style for each player's image in a draw */
+.draw-container .draw-img {
+    width: 120px;
+	animation: flop-left 1s ease-in-out 1s forwards;
+}
+
+.draw-container .draw-img:last-child {
+	width: 124px;
+	border-radius: 50%;
+    object-fit: cover;
+	margin-right: 20px;
+	animation: flop-right 1s ease-in-out 1s forwards;
+}
+
+
+/* Blue for Player X */
+.status-blue {
+    color: #00a8ff;
+}
+
+/* Orange for Player O */
+.status-orange {
+    color: #ff9d00;
+}
+
+
+/* ✅ Winning Message Animation */
+.bolder {
+    border: dashed 2px #369f74 !important;
+    color: #369f74;
+    animation: shake-pause 2s ease-in-out infinite;
+}
+
+/* ✅ Shake + Pause Keyframes */
+@keyframes shake-pause {
+    0% { transform: scale(1); } /* Start normal */
+    5% { transform: scale(1.04); }
+    10%, 30% { transform: rotate(-4deg) scale(1.04); }
+    20% { transform: rotate(4deg) scale(1.04); }
+    25% { transform: rotate(0deg) scale(1.04); }
+    35% { transform: scale(1); } /* Shake ends */
+    100% { transform: scale(1); } /* ✅ Pause for the rest of the time */
+}
+
+@keyframes flop-left {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(-110deg); } /* ✅ Over-flop */
+    35% { transform: rotate(-70deg); }  /* ✅ Sharp bounce back */
+    45% { transform: rotate(-93deg); }  /* ✅ Over-corrects */
+    55% { transform: rotate(-87deg); }  /* ✅ More shaking */
+    65% { transform: rotate(-92deg); }
+    75% { transform: rotate(-88deg); }
+    85% { transform: rotate(-91deg); }
+    100% { transform: rotate(-90deg); } /* ✅ Settles */
+}
+
+@keyframes flop-right {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(110deg); } /* ✅ Over-flop */
+    35% { transform: rotate(70deg); }  /* ✅ Sharp bounce back */
+    45% { transform: rotate(93deg); }  /* ✅ Over-corrects */
+    55% { transform: rotate(87deg); }  /* ✅ More shaking */
+    65% { transform: rotate(92deg); }
+    75% { transform: rotate(88deg); }
+    85% { transform: rotate(91deg); }
+    100% { transform: rotate(90deg); } /* ✅ Settles */
+}
+
+#playerXName {
+	color: #00a8ff;
+}
+
+#playerOName {
+	color: #ff9d00;
+}
+
+/* ✅ Rotate animation for winner's image */
+.winner-rotate {
+    animation: rotateWin 0.7s ease-in-out;
+}
+
+@keyframes rotateWin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(2turn); }
+}
+
+.confetti-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Prevent interaction */
+  overflow: hidden;
+  z-index: 1;
+  display: none;
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100%) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0.8;
+  }
+}
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 20px;
+  background: var(--confetti-color, red);
+  opacity: 0.9;
+  animation: confetti-fall var(--fall-duration, 15s) linear infinite;
+}
+
+/* Randomize confetti properties */
+.confetti-piece:nth-child(1) {
+  left: 10%;
+  --confetti-color: #ff6347;
+  --fall-duration: 3s;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 
+                       50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.confetti-piece:nth-child(2) {
+  left: 25%;
+  --confetti-color: #ffa500;
+  --fall-duration: 5s;
+}
+.confetti-piece:nth-child(3) {
+  left: 40%;
+  --confetti-color: #32cd32;
+  --fall-duration: 4.5s;
+}
+.confetti-piece:nth-child(4) {
+  left: 60%;
+  --confetti-color: #1e90ff;
+  --fall-duration: 3.5s;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 
+                       50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.confetti-piece:nth-child(5) {
+  left: 80%;
+  --confetti-color: #ff69b4;
+  --fall-duration: 6s;
+}
+
+/* ✅ Odd confetti pieces (Triangle) */
+.confetti-piece:nth-child(odd) {
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+/* ✅ Even confetti pieces (Irregular Polygon - Star-like) */
+.confetti-piece:nth-child(even) {
+    clip-path: polygon(20% 0%, 80% 0%, 100% 40%, 80% 100%, 20% 100%, 0% 40%);
+}
+
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100%) rotate(0deg);
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+  }
+}
+
+/* @keyframes bounce-in {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.15); opacity: 1; }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+
+.cell img {
+    animation: bounce-in 0.5s ease-out forwards;
+} */
+
+@keyframes spin-in {
+    0% { transform: rotate(-180deg) scale(0.2); opacity: 0; }
+    100% { transform: rotate(0) scale(1); opacity: 1; }
+}
+
+.cell img {
+    animation: spin-in 0.175s ease-out forwards;
+}
+
+
+
+	
