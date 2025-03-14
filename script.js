@@ -19,13 +19,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameActive = false;
     let gameState = ["", "", "", "", "", "", "", "", ""];
 
-    // Player Names
-    const playerXName = "Alex";
-    const playerOName = "Martin";
+// ✅ Load selected players from localStorage or fallback to defaults
+let selectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers')) || { player1: 'Alex', player2: 'Martin' };
+let players = JSON.parse(localStorage.getItem('players')) || [
+    { name: 'Alex', image: 'images/playerX.png' },
+    { name: 'Martin', image: 'images/playerO.png' }
+];
 
-    // Image sources
-    const playerXSrc = "images/playerX.png"; // Replace with actual player X image
-    const playerOSrc = "images/playerO.png"; // Replace with actual player O image
+
+// ✅ Find the selected players
+let playerX = players.find(p => p.name === selectedPlayers.player1) || { name: 'Alex', image: 'playerX.png' };
+let playerO = players.find(p => p.name === selectedPlayers.player2) || { name: 'Martin', image: 'playerO.png' };
+
+// ✅ Use these players in the game logic
+const playerXName = playerX.name;
+const playerOName = playerO.name;
+const playerXSrc = playerX.image;
+const playerOSrc = playerO.image;
+
 
     // ✅ Load scores from localStorage or initialize to 0
     let playerXScore = localStorage.getItem("playerXScore") ? parseInt(localStorage.getItem("playerXScore")) : 0;

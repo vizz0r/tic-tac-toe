@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Players</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Select Players</h1>
+
+    <div id="player-selection">
+        <div id="chosen-players">
+            <div id="uploaded-players"></div>
+        </div>
+		
+
+        <h2>Upload a New Player</h2>
+        <input type="file" id="playerUpload" accept="image/*">
+        <input type="text" id="playerName" placeholder="Enter player name">
+        <button id="uploadPlayerBtn">Upload</button>
+	<button id="takePhotoBtn">📷 Take Photo</button>
+        <br><br>
+        <button id="startGameBtn">Start Game</button>
+    </div>
+
+    <script src="players.js"></script>
+</body>
+</html>
