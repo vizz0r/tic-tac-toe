@@ -19,8 +19,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameActive = false;
     let gameState = ["", "", "", "", "", "", "", "", ""];
 
-// ✅ Load selected players from localStorage or fallback to defaults
-let selectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers')) || { player1: 'Alex', player2: 'Martin' };
+    // ✅ Ensure selected players are loaded
+    let selectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers')) || { player1: 'Alex', player2: 'Martin' };
+
+    // ✅ Fetch correct scores from `localStorage`
+    let playerXScore = parseInt(localStorage.getItem(`score_${selectedPlayers.player1}`)) || 0;
+    let playerOScore = parseInt(localStorage.getItem(`score_${selectedPlayers.player2}`)) || 0;
+
+    console.log("Loaded Scores from localStorage:", playerXScore, playerOScore);
+
+    // ✅ Ensure UI is updated with correct scores
+    setTimeout(() => {
+        document.getElementById("playerXName").innerHTML = `${selectedPlayers.player1} (<span id="playerXScore">${playerXScore}</span>)`;
+        document.getElementById("playerOName").innerHTML = `${selectedPlayers.player2} (<span id="playerOScore">${playerOScore}</span>)`;
+    }, 100);
 let players = JSON.parse(localStorage.getItem('players')) || [
     { name: 'Alex', image: 'images/playerX.png' },
     { name: 'Martin', image: 'images/playerO.png' }
@@ -39,8 +51,8 @@ const playerOSrc = playerO.image;
 
 
     // ✅ Load scores from localStorage or initialize to 0
-    let playerXScore = localStorage.getItem("playerXScore") ? parseInt(localStorage.getItem("playerXScore")) : 0;
-    let playerOScore = localStorage.getItem("playerOScore") ? parseInt(localStorage.getItem("playerOScore")) : 0;
+    playerXScore = localStorage.getItem("playerXScore") ? parseInt(localStorage.getItem("playerXScore")) : 0;
+    playerOScore = localStorage.getItem("playerOScore") ? parseInt(localStorage.getItem("playerOScore")) : 0;
 
     // ✅ Function to update the Reset Score button visibility
     function updateResetScoreButton() {
@@ -182,16 +194,26 @@ const playerOSrc = playerO.image;
 
         gameActive = false;
 
-        // ✅ Update and save score correctly
+        // ✅ Retrieve both scores BEFORE updating to prevent overwriting issues
+        let storedXScore = parseInt(localStorage.getItem(`score_${playerXName}`)) || 0;
+        let storedOScore = parseInt(localStorage.getItem(`score_${playerOName}`)) || 0;
+
+        console.log(`Before update - X: ${storedXScore}, O: ${storedOScore}`);
+
         if (currentPlayer === "X") {
-            playerXScore++;  
-            localStorage.setItem("playerXScore", playerXScore);  
-            playerXScoreDisplay.textContent = playerXScore;  
+            storedXScore++; // ✅ Only increment X score
+            localStorage.setItem(`score_${playerXName}`, storedXScore);
         } else {
-            playerOScore++;
-            localStorage.setItem("playerOScore", playerOScore);
-            playerOScoreDisplay.textContent = playerOScore;
+            storedOScore++; // ✅ Only increment O score
+            localStorage.setItem(`score_${playerOName}`, storedOScore);
         }
+
+        // ✅ After update, apply both scores to UI (ensures second player's score is retained)
+        document.getElementById("playerXScore").textContent = storedXScore;
+        document.getElementById("playerOScore").textContent = storedOScore;
+
+        console.log(`After update - X: ${storedXScore}, O: ${storedOScore}`);
+
 
         // ✅ Keep winning cells fully visible
         winningCells.forEach(cell => cell.classList.add("winning-cell"));
@@ -261,11 +283,13 @@ const playerOSrc = playerO.image;
 			cell.innerHTML = "";
 			cell.classList.remove("blue-bg", "orange-bg", "winning-cell", "disabled");
 		});
+		
+		
 
 		// ✅ Randomly pick who starts
 		currentPlayer = Math.random() < 0.5 ? "X" : "O";
 		let startingPlayerName = currentPlayer === "X" ? playerXName : playerOName;
-		statusDisplay.textContent = `${startingPlayerName} starts first.`;
+		statusDisplay.textContent = `${startingPlayerName} starts first`;
 
 		// ✅ Reset `#currentPlayerContainer` and re-add `currentPlayerImg`
 		document.getElementById("currentPlayerContainer").innerHTML = `
@@ -304,12 +328,23 @@ const playerOSrc = playerO.image;
 
     // ✅ Reset the score when "Reset Score" button is clicked
     function resetScore() {
-        localStorage.setItem("playerXScore", 0);
-        localStorage.setItem("playerOScore", 0);
-        playerXScore = 0;
-        playerOScore = 0;
-        playerXScoreDisplay.textContent = 0;
-        playerOScoreDisplay.textContent = 0;
+    // ✅ Clear `localStorage` first to prevent overwriting issues
+    localStorage.removeItem(`score_${playerXName}`);
+    localStorage.removeItem(`score_${playerOName}`);
+
+    // ✅ Reset scores in memory
+    playerXScore = 0;
+    playerOScore = 0;
+
+    // ✅ Reset scores in `localStorage`
+    localStorage.setItem(`score_${playerXName}`, 0);
+    localStorage.setItem(`score_${playerOName}`, 0);
+
+    // ✅ Update UI
+    document.getElementById("playerXScore").textContent = "0";
+    document.getElementById("playerOScore").textContent = "0";
+
+    console.log("Scores reset successfully.");
 
         updateResetScoreButton();
 
