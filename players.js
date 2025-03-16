@@ -42,12 +42,13 @@
 // Global Helper Functions
 //
 
-// Apply a simple sharpen filter using a 3x3 convolution kernel.
+// Apply a sharpen filter using a 3x3 convolution kernel that sums to 1
 function applySharpen(imageData) {
     const width = imageData.width, height = imageData.height;
     const src = imageData.data;
     const output = new Uint8ClampedArray(src.length);
-    // Sharpen kernel.
+
+    // Kernel with sum=1, so it doesn't darken/brighten the image overall.
     const kernel = [
          0, -1,  0,
         -1,  5, -1,
@@ -55,7 +56,7 @@ function applySharpen(imageData) {
     ];
     const kernelSize = 3;
     const half = Math.floor(kernelSize / 2);
-    
+
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             let r = 0, g = 0, b = 0;
@@ -66,7 +67,7 @@ function applySharpen(imageData) {
                     if (px >= 0 && px < width && py >= 0 && py < height) {
                         const offset = (py * width + px) * 4;
                         const weight = kernel[(ky + half) * kernelSize + (kx + half)];
-                        r += src[offset] * weight;
+                        r += src[offset]     * weight;
                         g += src[offset + 1] * weight;
                         b += src[offset + 2] * weight;
                     }
@@ -82,8 +83,8 @@ function applySharpen(imageData) {
     return new ImageData(output, width, height);
 }
 
-// Global image processing: Brighten (105%), increase contrast (105%), and sharpen.
-// Disables image smoothing and converts the image to a JPEG blob (quality 1.0) for best quality.
+// Global image processing: brightness(105%), contrast(105%), saturate(120%),
+// then apply the sharpen filter. Disables image smoothing, outputs a JPEG blob (1.0).
 function processImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -95,9 +96,9 @@ function processImage(file) {
             const ctx = canvas.getContext("2d");
             // Disable image smoothing for sharper output.
             ctx.imageSmoothingEnabled = false;
-            // Apply brightness and contrast
-            ctx.filter = "brightness(105%) contrast(105%)";
-            // Fill canvas with white (to remove transparency issues).
+            // Apply brightness, contrast, and saturation.
+            ctx.filter = "brightness(105%) contrast(105%) saturate(120%)";
+            // Fill canvas with white (to remove transparency).
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             // Draw the image onto the canvas.
@@ -106,7 +107,7 @@ function processImage(file) {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const sharpenedData = applySharpen(imageData);
             ctx.putImageData(sharpenedData, 0, 0);
-            // Convert the processed canvas to a JPEG blob with highest quality.
+            // Convert the processed canvas to a JPEG blob with highest quality (1.0).
             canvas.toBlob((blob) => {
                 if (blob) {
                     resolve(blob);
@@ -121,7 +122,7 @@ function processImage(file) {
 }
 
 // Remove background using remove.bg API.
-// This function processes the image globally (enhancing it) then sends the JPEG blob.
+// This function processes the image (enhancement) then sends the JPEG blob.
 async function removeBackground(file) {
     console.log("🖼 Processing image for remove.bg API...");
     const processedFile = await processImage(file);
@@ -147,8 +148,7 @@ async function removeBackground(file) {
 }
 
 // Apply a round mask to the image using FaceMesh.
-// Detects the face, applies a circular mask, and crops the image to a square around the face.
-// Disables image smoothing to preserve sharpness.
+// Detects the face, applies a circular mask, and crops to a square around the face.
 async function applyRoundMask(imageBlob) {
     console.log("🎭 Applying round mask to image...");
     return new Promise((resolve) => {
@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
             uploadedPlayersContainer.innerHTML += `
                 <div class="player-selection">
                     <input type="checkbox" name="selectedPlayer" value="${p.name}" class="player-checkbox" ${isChecked}>
-                    <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:190px;">
+                    <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:214px;">
                     <span>${p.name}</span>
                     ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">❌</button>` : ""}
                 </div>
