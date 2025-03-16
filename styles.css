@@ -4,8 +4,8 @@ body {
     text-align: center;
     background-color: #f2f2f2;
 	margin: 0; 
-	padding: 0;
-	    /* user-select: none; */
+	padding: 20px;
+	/* user-select: none; */
 }
 
 h1 {
@@ -14,17 +14,22 @@ h1 {
 	padding: 60px 0 20px 0;
 }
 
+#selection-title {
+	padding-top: 20px;
+}
+	
 
 /* Grid layout for players */
 #uploaded-players {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, auto));
+    gap: 30px;
+    margin-top: 20px;
+    justify-content: center;
 }
 /* Message container */
 #message-container {
-    margin-top: 10px;
+    margin-top: 20px;
     padding: 10px;
     border: 1px solid #ffc107;
     background-color: #fff3cd;
@@ -49,9 +54,15 @@ h1 {
     position: relative;
     padding: 15px 15px 35px 15px; /* Extra bottom padding so name doesn't hide behind Selected tag */
     border: 2px solid transparent;
+	background-color: #f2f2f2;
     transition: border 0.3s;
-    background: #f9f9f9;
     border-radius: 8px;
+	
+}
+
+.player-selection:hover {
+	background: #e1e1e1;
+	cursor: pointer;
 }
 
 /* Selected player card styling */
@@ -113,10 +124,13 @@ input[type="file"] {
 
 /* New Player Toggle & Container Styling */
 /* Style the toggle switch if desired; default browser style is used if not overridden */
-#newPlayerToggle {
-    margin: 10px 0;
-		margin: 40px 0 30px 0;
+label:has(input#newPlayerToggle) {
 	font-size: 25px;
+	user-select:none;
+}
+
+label:has(input#newPlayerToggle):hover, #newPlayerToggle {
+	cursor: pointer;
 }
 
 
