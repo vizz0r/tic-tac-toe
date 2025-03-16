@@ -1,24 +1,22 @@
 (function() {
-    // Create a debug log container that should be visible on all devices.
+    // Create a debug log container fixed at the top with a semitransparent background.
     const debugLog = document.createElement("div");
     debugLog.id = "debugLog";
-    // Use fixed positioning and ensure full width so that it appears at the bottom.
     debugLog.style.position = "fixed";
-    debugLog.style.bottom = "0";
+    debugLog.style.top = "0";
     debugLog.style.left = "0";
     debugLog.style.width = "100%";
     debugLog.style.maxHeight = "200px";
     debugLog.style.overflowY = "auto";
-    debugLog.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+    debugLog.style.backgroundColor = "rgba(0, 0, 0, 0.5)"; // semitransparent
     debugLog.style.color = "white";
     debugLog.style.fontSize = "12px";
     debugLog.style.zIndex = "10000";
     debugLog.style.padding = "5px";
     debugLog.style.fontFamily = "monospace";
-    // Optionally add a toggle button to show/hide logs on mobile if needed.
     document.body.appendChild(debugLog);
 
-    // Wrap console.log so that every message is also appended to the log container.
+    // Wrap console.log so every message is also appended to the log container.
     const originalConsoleLog = console.log;
     console.log = function(...args) {
         originalConsoleLog.apply(console, args);
@@ -28,7 +26,7 @@
         debugLog.appendChild(messageDiv);
     };
 
-    // Also wrap console.error if desired.
+    // Wrap console.error similarly.
     const originalConsoleError = console.error;
     console.error = function(...args) {
         originalConsoleError.apply(console, args);
