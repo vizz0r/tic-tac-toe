@@ -1,3 +1,46 @@
+(function() {
+    // Create a debug log container and style it for mobile display.
+    const debugLog = document.createElement("div");
+    debugLog.id = "debugLog";
+    debugLog.style.position = "fixed";
+    debugLog.style.bottom = "0";
+    debugLog.style.left = "0";
+    debugLog.style.right = "0";
+    debugLog.style.maxHeight = "200px";
+    debugLog.style.overflowY = "scroll";
+    debugLog.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+    debugLog.style.color = "white";
+    debugLog.style.fontSize = "10px";
+    debugLog.style.zIndex = "9999";
+    debugLog.style.padding = "5px";
+    debugLog.style.fontFamily = "monospace";
+    document.body.appendChild(debugLog);
+
+    // Store the original console.log
+    const origConsoleLog = console.log;
+
+    // Override console.log to also output to the debug log container.
+    console.log = function(...args) {
+        origConsoleLog.apply(console, args);
+        const message = args.join(" ");
+        const messageDiv = document.createElement("div");
+        messageDiv.textContent = message;
+        debugLog.appendChild(messageDiv);
+    };
+
+    // Optionally, do the same for console.error if desired.
+    const origConsoleError = console.error;
+    console.error = function(...args) {
+        origConsoleError.apply(console, args);
+        const message = args.join(" ");
+        const messageDiv = document.createElement("div");
+        messageDiv.style.color = "red";
+        messageDiv.textContent = message;
+        debugLog.appendChild(messageDiv);
+    };
+})();
+
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log("📌 Page Loaded - Initializing Players");
 
