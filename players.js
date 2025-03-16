@@ -221,16 +221,37 @@ async function applyRoundMask(imageBlob) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("📌 Page Loaded - Initializing Players");
 	window.addEventListener('scroll', function() {
-  const selectionTitle = document.getElementById('selection-title');
-  if (selectionTitle) {
-    const rect = selectionTitle.getBoundingClientRect();
-    if (rect.top <= 0) {
-      selectionTitle.classList.add('drop-shadow');
-    } else {
-      selectionTitle.classList.remove('drop-shadow');
-    }
-  }
-});
+	  const selectionTitle = document.getElementById('selection-title');
+	  if (selectionTitle) {
+		const rect = selectionTitle.getBoundingClientRect();
+		if (rect.top <= 0) {
+		  selectionTitle.classList.add('drop-shadow');
+		} else {
+		  selectionTitle.classList.remove('drop-shadow');
+		}
+	  }
+	});
+	
+	const storageTab = document.getElementById('tabStorage');
+	const cameraTab = document.getElementById('tabCamera');
+	const tabContentStorage = document.getElementById('tabContentStorage');
+	const tabContentCamera = document.getElementById('tabContentCamera');
+
+	if(storageTab && cameraTab && tabContentStorage && tabContentCamera) {
+	  storageTab.addEventListener('click', () => {
+		storageTab.classList.add('active');
+		cameraTab.classList.remove('active');
+		tabContentStorage.style.display = 'block';
+		tabContentCamera.style.display = 'none';
+	  });
+
+	  cameraTab.addEventListener('click', () => {
+		cameraTab.classList.add('active');
+		storageTab.classList.remove('active');
+		tabContentCamera.style.display = 'block';
+		tabContentStorage.style.display = 'none';
+	  });
+	}
 
     // Create the message container below the players grid if it doesn't exist.
     let messageContainer = document.getElementById('message-container');
@@ -395,80 +416,88 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle New Player Upload (Add Player) with separate validation.
     uploadPlayerBtn.addEventListener('click', async () => {
-        uploadPlayerBtn.textContent = "Adding Player...";
-        uploadPlayerBtn.disabled = true;
-        
-        const fileFromInput = playerUpload.files[0];
-        const file = fileFromInput || window.selectedFile || window.capturedFile;
-        const playerName = playerNameInput.value.trim();
-        console.log("📌 Add Player button clicked. Processing player:", playerName);
-        
-        // Validate file input.
-        if (!file) {
-            const errorMessage = isMobileDevice 
+    uploadPlayerBtn.textContent = "Adding Player...";
+    uploadPlayerBtn.disabled = true;
+    
+    // Determine which tab is active
+    let file;
+    if (storageTab && storageTab.classList.contains('active')) {
+         // Use file selection mode
+         const fileFromInput = playerUpload.files[0];
+         file = fileFromInput || window.selectedFile;
+    } else if (cameraTab && cameraTab.classList.contains('active')) {
+         // Use camera capture mode
+         file = window.capturedFile;
+    }
+    
+    const playerName = playerNameInput.value.trim();
+    // Validate file input.
+    if (!file) {
+         const errorMessage = isMobileDevice 
               ? "No image selected from gallery or camera." 
               : "No image selected for upload.";
-            displayMessage(errorMessage);
-            console.log("⚠️ Upload Failed - No file selected.");
-            uploadPlayerBtn.textContent = "Add Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-        // Validate player name input.
-        if (!playerName) {
-            displayMessage("Please enter a player name.");
-            console.log("⚠️ Upload Failed - Missing name.");
-            uploadPlayerBtn.textContent = "Add Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-        if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
-            displayMessage(`A player named "${playerName}" already exists.`);
-            console.log(`❌ Duplicate name detected: ${playerName}`);
-            uploadPlayerBtn.textContent = "Add Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-        try {
-            console.log("✅ Name is unique. Proceeding with image processing...");
-            console.log("📸 Attempting to process image for:", playerName);
-            console.log("🛠 File Details:", file);
-            console.log("🎨 Removing Background...");
-            const processedBlob = await removeBackground(file);
-            console.log("✅ Background Removed! Blob:", processedBlob);
-            console.log("🔵 Applying Round Mask...");
-            const finalImage = await applyRoundMask(processedBlob);
-            console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
-            players.push({ name: playerName, image: finalImage });
-            console.log(`✅ New Player Added: ${playerName}`);
-            console.log("🛠 Players After Processing:", players.map(p => p.name));
-            savePlayers();
-            renderPlayers();
-            console.log("📂 Image saved to localStorage.");
-            // Clear inputs and reset stored files.
-            playerUpload.value = "";
-            playerNameInput.value = "";
-            window.selectedFile = null;
-            window.capturedFile = null;
-            let captureStatus = document.getElementById("captureStatus");
-            if (captureStatus) {
-                captureStatus.textContent = "";
-            }
-            // Reset the file input display: show the label and hide the file name display.
-            const fileNameDisplay = document.getElementById('fileNameDisplay');
-            const fileLabel = document.querySelector('#browse .file-label');
-            if (fileNameDisplay && fileLabel) {
-                fileNameDisplay.textContent = "";
-                fileNameDisplay.style.display = "none";
-                fileLabel.style.display = "inline";
-            }
-        } catch (error) {
-            console.error("❌ Image Processing Failed:", error);
-        } finally {
-            uploadPlayerBtn.textContent = "Add Player";
-            uploadPlayerBtn.disabled = false;
-        }
-    });
+         displayMessage(errorMessage);
+         console.log("⚠️ Upload Failed - No file selected.");
+         uploadPlayerBtn.textContent = "Add Player";
+         uploadPlayerBtn.disabled = false;
+         return;
+    }
+    // Validate player name input.
+    if (!playerName) {
+         displayMessage("Please enter a player name.");
+         console.log("⚠️ Upload Failed - Missing name.");
+         uploadPlayerBtn.textContent = "Add Player";
+         uploadPlayerBtn.disabled = false;
+         return;
+    }
+    if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
+         displayMessage(`A player named "${playerName}" already exists.`);
+         console.log(`❌ Duplicate name detected: ${playerName}`);
+         uploadPlayerBtn.textContent = "Add Player";
+         uploadPlayerBtn.disabled = false;
+         return;
+    }
+    try {
+         console.log("✅ Name is unique. Proceeding with image processing...");
+         console.log("📸 Attempting to process image for:", playerName);
+         console.log("🛠 File Details:", file);
+         console.log("🎨 Removing Background...");
+         const processedBlob = await removeBackground(file);
+         console.log("✅ Background Removed! Blob:", processedBlob);
+         console.log("🔵 Applying Round Mask...");
+         const finalImage = await applyRoundMask(processedBlob);
+         console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
+         players.push({ name: playerName, image: finalImage });
+         console.log(`✅ New Player Added: ${playerName}`);
+         console.log("🛠 Players After Processing:", players.map(p => p.name));
+         savePlayers();
+         renderPlayers();
+         console.log("📂 Image saved to localStorage.");
+         // Clear inputs and reset stored files.
+         playerUpload.value = "";
+         playerNameInput.value = "";
+         window.selectedFile = null;
+         window.capturedFile = null;
+         let captureStatus = document.getElementById("captureStatus");
+         if (captureStatus) {
+             captureStatus.textContent = "";
+         }
+         // Reset the file input display: show the label and hide the file name display.
+         const fileNameDisplay = document.getElementById('fileNameDisplay');
+         const fileLabel = document.querySelector('#browse .file-label');
+         if (fileNameDisplay && fileLabel) {
+             fileNameDisplay.textContent = "";
+             fileNameDisplay.style.display = "none";
+             fileLabel.style.display = "inline";
+         }
+    } catch (error) {
+         console.error("❌ Image Processing Failed:", error);
+    } finally {
+         uploadPlayerBtn.textContent = "Add Player";
+         uploadPlayerBtn.disabled = false;
+    }
+});
+
 
     function savePlayers() {
         localStorage.setItem('players', JSON.stringify(players));
