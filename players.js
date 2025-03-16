@@ -11,10 +11,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // For file selection, only allow image files.
     if (playerUpload) {
         playerUpload.setAttribute("accept", "image/*"); // Only image files accepted
-        // Note: Do NOT set the "capture" attribute here so that on mobile it opens the gallery.
+        // Do NOT set the "capture" attribute here so that on mobile it opens the gallery.
     }
 
-    // Check for mobile device and camera access
+    // Listen for changes on the Choose File input to store the selected file.
+    playerUpload.addEventListener('change', () => {
+        if (playerUpload.files && playerUpload.files[0]) {
+            window.selectedFile = playerUpload.files[0];
+            console.log("📁 File selected from storage:", window.selectedFile.name);
+        }
+    });
+
+    // Check for mobile device and camera access.
     const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
     const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
 
@@ -26,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Martin', image: 'images/playerO.png' }
     ];
 
-    // Restore last used selected players from localStorage
+    // Restore last used selected players from localStorage.
     let storedSelectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers'));
     let selectedPlayers = new Set();
 
@@ -68,8 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Take Photo Button (Mobile) by creating a temporary file input with capture attribute.
+    // Handle Take Photo Button (Mobile)
     takePhotoBtn.addEventListener("click", () => {
+        // Create a temporary file input for capturing photo
         const captureInput = document.createElement("input");
         captureInput.type = "file";
         captureInput.accept = "image/*";
@@ -81,6 +90,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file) {
                 window.capturedFile = file; // Store the captured file globally.
                 console.log("📸 Photo captured from camera.");
+                // Create or update the status element for the Take Photo option.
+                let captureStatus = document.getElementById("captureStatus");
+                if (!captureStatus) {
+                    captureStatus = document.createElement("span");
+                    captureStatus.id = "captureStatus";
+                    captureStatus.style.marginLeft = "10px";
+                    // Insert the status element right after the Take Photo button.
+                    takePhotoBtn.parentNode.insertBefore(captureStatus, takePhotoBtn.nextSibling);
+                }
+                captureStatus.textContent = "Photo captured";
             }
             document.body.removeChild(captureInput);
         });
@@ -89,8 +108,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle Image Upload (Either file selected from storage or captured via camera)
     uploadPlayerBtn.addEventListener('click', async () => {
-        // First check for a file selected via the file input; otherwise, check for a captured file.
-        const fileFromUpload = playerUpload.files[0];
+        // Provide visual feedback by changing button text and disabling it.
+        uploadPlayerBtn.textContent = "Uploading...";
+        uploadPlayerBtn.disabled = true;
+        
+        // Use the file stored from the file input change event; otherwise, use the captured file.
+        const fileFromUpload = window.selectedFile;
         const file = fileFromUpload || window.capturedFile;
         const playerName = playerNameInput.value.trim();
 
@@ -99,12 +122,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!file || !playerName) {
             alert("Please take a photo or select an image and enter a name.");
             console.log("⚠️ Upload Failed - Missing Name or Image.");
+            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.disabled = false;
             return;
         }
 
         if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
             alert(`A player named "${playerName}" already exists.`);
             console.log(`❌ Duplicate name detected: ${playerName}`);
+            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.disabled = false;
             return;
         }
 
@@ -128,12 +155,22 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPlayers();
             console.log("📂 Image saved to localStorage.");
 
-            // Clear inputs and reset captured file.
+            // Clear inputs and reset stored files.
             playerUpload.value = "";
             playerNameInput.value = "";
+            window.selectedFile = null;
             window.capturedFile = null;
+            // Clear capture status if present.
+            let captureStatus = document.getElementById("captureStatus");
+            if (captureStatus) {
+                captureStatus.textContent = "";
+            }
         } catch (error) {
             console.error("❌ Image Processing Failed:", error);
+        } finally {
+            // Revert button text and re-enable the button.
+            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.disabled = false;
         }
     });
 
@@ -242,24 +279,26 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('players', JSON.stringify(players));
     }
 
-    function renderPlayers() {
-        console.log("🔄 Rendering Players...");
-        uploadedPlayersContainer.innerHTML = "";
 
-        players.forEach((p, index) => {
-            const isChecked = selectedPlayers.has(p.name) ? "checked" : "";
-            uploadedPlayersContainer.innerHTML += `
-                <div class="player-selection">
-                    <input type="checkbox" name="selectedPlayer" value="${p.name}" class="player-checkbox" ${isChecked}>
-                    <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img">
-                    <span>${p.name}</span>
-                    ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">❌</button>` : ""}
-                </div>
-            `;
-            console.log(`✅ Player Rendered: ${p.name} (Checked: ${isChecked})`);
-        });
-        updateCheckboxState();
-    }
+	function renderPlayers() {
+		console.log("🔄 Rendering Players...");
+		uploadedPlayersContainer.innerHTML = "";
+
+		players.forEach((p, index) => {
+			const isChecked = selectedPlayers.has(p.name) ? "checked" : "";
+			uploadedPlayersContainer.innerHTML += `
+				<div class="player-selection">
+					<input type="checkbox" name="selectedPlayer" value="${p.name}" class="player-checkbox" ${isChecked}>
+					<img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:190px;">
+					<span>${p.name}</span>
+					${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">❌</button>` : ""}
+				</div>
+			`;
+			console.log(`✅ Player Rendered: ${p.name} (Checked: ${isChecked})`);
+		});
+		updateCheckboxState();
+	}
+
 
     function handlePlayerSelection(event) {
         const selectedCheckboxes = document.querySelectorAll('input[name="selectedPlayer"]:checked');
