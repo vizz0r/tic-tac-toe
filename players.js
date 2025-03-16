@@ -1,4 +1,4 @@
-(function() {
+/* (function() {
     // Create a debug log container fixed at the top with a semitransparent background.
     const debugLog = document.createElement("div");
     debugLog.id = "debugLog";
@@ -36,241 +36,102 @@
         messageDiv.textContent = message;
         debugLog.appendChild(messageDiv);
     };
-})();
+})(); */
 
+//
+// Global Helper Functions
+//
 
-
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("📌 Page Loaded - Initializing Players");
-
-    const uploadedPlayersContainer = document.getElementById('uploaded-players');
-    const playerUpload = document.getElementById('playerUpload'); // File input for selecting an image from storage
-    const playerNameInput = document.getElementById('playerName');
-    const uploadPlayerBtn = document.getElementById('uploadPlayerBtn');
-    const startGameBtn = document.getElementById('startGameBtn');
-    const takePhotoBtn = document.getElementById('takePhotoBtn'); // Button for mobile camera capture
-
-    // For file selection, only allow image files.
-    if (playerUpload) {
-        playerUpload.setAttribute("accept", "image/*"); // Only image files accepted
-        // Do NOT set the "capture" attribute here so that on mobile it opens the gallery.
-    }
-
-    // Listen for changes on the Choose File input to store the selected file.
-    playerUpload.addEventListener('change', () => {
-        if (playerUpload.files && playerUpload.files[0]) {
-            window.selectedFile = playerUpload.files[0];
-            console.log("📁 File selected from storage:", window.selectedFile.name);
-        }
-    });
-
-    // Check for mobile device and camera access.
-    const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-    const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
-
-    // On desktop, hide the takePhotoBtn; on mobile, show it if a camera is available.
-    takePhotoBtn.style.display = (isMobileDevice && hasCamera) ? "inline-block" : "none";
-
-    let players = JSON.parse(localStorage.getItem('players')) || [
-        { name: 'Alex', image: 'images/playerX.png' },
-        { name: 'Martin', image: 'images/playerO.png' }
+// Apply a simple sharpen filter using a 3x3 convolution kernel.
+function applySharpen(imageData) {
+    const width = imageData.width, height = imageData.height;
+    const src = imageData.data;
+    const output = new Uint8ClampedArray(src.length);
+    // Sharpen kernel.
+    const kernel = [
+         0, -1,  0,
+        -1,  5, -1,
+         0, -1,  0
     ];
-
-    // Restore last used selected players from localStorage.
-    let storedSelectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers'));
-    let selectedPlayers = new Set();
-
-    if (storedSelectedPlayers) {
-        if (storedSelectedPlayers.player1) selectedPlayers.add(storedSelectedPlayers.player1);
-        if (storedSelectedPlayers.player2) selectedPlayers.add(storedSelectedPlayers.player2);
-    }
-
-    // If only one player is selected and more exist, retain it instead of clearing.
-    if (selectedPlayers.size === 1 && players.length > 2) {
-        console.log("⚠️ Only one player was selected on refresh. Retaining selection.");
-    }
-    // If no players were selected and only Alex & Martin exist, default to them.
-    if (selectedPlayers.size === 0 && players.length === 2) {
-        selectedPlayers.add('Alex');
-        selectedPlayers.add('Martin');
-    }
-
-    // Helper function to persist selected players to localStorage.
-    function persistSelectedPlayers() {
-        localStorage.setItem('selectedPlayers', JSON.stringify({
-            player1: [...selectedPlayers][0] || null,
-            player2: [...selectedPlayers][1] || null
-        }));
-        console.log("💾 Persisted selected players:", localStorage.getItem('selectedPlayers'));
-    }
-
-    // Persist selections once on load.
-    persistSelectedPlayers();
-    console.log("✅ Players selected after load:", Array.from(selectedPlayers));
-
-    // Use event delegation for clicks within the players container.
-    uploadedPlayersContainer.addEventListener('click', (event) => {
-        if (event.target.classList.contains('player-checkbox')) {
-            handlePlayerSelection(event);
-        }
-        if (event.target.classList.contains('delete-player-btn')) {
-            deletePlayer(event);
-        }
-    });
-
-    // Handle Take Photo Button (Mobile)
-    takePhotoBtn.addEventListener("click", () => {
-        // Create a temporary file input for capturing photo
-        const captureInput = document.createElement("input");
-        captureInput.type = "file";
-        captureInput.accept = "image/*";
-        captureInput.setAttribute("capture", "environment"); // Forces rear camera
-        captureInput.style.display = "none";
-        document.body.appendChild(captureInput);
-        captureInput.addEventListener("change", () => {
-            const file = captureInput.files[0];
-            if (file) {
-                window.capturedFile = file; // Store the captured file globally.
-                console.log("📸 Photo captured from camera.");
-                // Create or update the status element for the Take Photo option.
-                let captureStatus = document.getElementById("captureStatus");
-                if (!captureStatus) {
-                    captureStatus = document.createElement("span");
-                    captureStatus.id = "captureStatus";
-                    captureStatus.style.marginLeft = "10px";
-                    // Insert the status element right after the Take Photo button.
-                    takePhotoBtn.parentNode.insertBefore(captureStatus, takePhotoBtn.nextSibling);
+    const kernelSize = 3;
+    const half = Math.floor(kernelSize / 2);
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            let r = 0, g = 0, b = 0;
+            for (let ky = -half; ky <= half; ky++) {
+                for (let kx = -half; kx <= half; kx++) {
+                    const px = x + kx;
+                    const py = y + ky;
+                    if (px >= 0 && px < width && py >= 0 && py < height) {
+                        const offset = (py * width + px) * 4;
+                        const weight = kernel[(ky + half) * kernelSize + (kx + half)];
+                        r += src[offset] * weight;
+                        g += src[offset + 1] * weight;
+                        b += src[offset + 2] * weight;
+                    }
                 }
-                captureStatus.textContent = "Photo captured";
             }
-            document.body.removeChild(captureInput);
-        });
-        captureInput.click();
-    });
-
-    // Handle Image Upload (Either file selected from storage or captured via camera)
-    uploadPlayerBtn.addEventListener('click', async () => {
-        // Provide visual feedback by changing button text and disabling it.
-        uploadPlayerBtn.textContent = "Uploading...";
-        uploadPlayerBtn.disabled = true;
-        
-        // Attempt to get the file directly from the file input, then fallback.
-        const fileFromInput = playerUpload.files[0];
-        const file = fileFromInput || window.selectedFile || window.capturedFile;
-        const playerName = playerNameInput.value.trim();
-
-        console.log("📌 Upload button clicked. Processing player:", playerName);
-
-        if (!file) {
-            alert("No file selected from storage or camera.");
-            console.log("⚠️ Upload Failed - No file selected.");
-            uploadPlayerBtn.textContent = "Upload";
-            uploadPlayerBtn.disabled = false;
-            return;
+            const index = (y * width + x) * 4;
+            output[index]     = Math.min(255, Math.max(0, r));
+            output[index + 1] = Math.min(255, Math.max(0, g));
+            output[index + 2] = Math.min(255, Math.max(0, b));
+            output[index + 3] = src[index + 3]; // preserve alpha
         }
+    }
+    return new ImageData(output, width, height);
+}
 
-        if (!playerName) {
-            alert("Please enter a player name.");
-            console.log("⚠️ Upload Failed - Missing name.");
-            uploadPlayerBtn.textContent = "Upload";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-
-        if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
-            alert(`A player named "${playerName}" already exists.`);
-            console.log(`❌ Duplicate name detected: ${playerName}`);
-            uploadPlayerBtn.textContent = "Upload";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-
-        try {
-            console.log("✅ Name is unique. Proceeding with image processing...");
-            console.log("📸 Attempting to process image for:", playerName);
-            console.log("🛠 File Details:", file);
-            console.log("🛠 Players Before Processing:", players.map(p => p.name));
-            console.log("🎨 Removing Background...");
-            const processedBlob = await removeBackground(file);
-            console.log("✅ Background Removed! Blob:", processedBlob);
-
-            console.log("🔵 Applying Round Mask...");
-            const finalImage = await applyRoundMask(processedBlob);
-            console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
-
-            players.push({ name: playerName, image: finalImage });
-            console.log(`✅ New Player Added: ${playerName}`);
-            console.log("🛠 Players After Processing:", players.map(p => p.name));
-            savePlayers();
-            renderPlayers();
-            console.log("📂 Image saved to localStorage.");
-
-            // Clear inputs and reset stored files.
-            playerUpload.value = "";
-            playerNameInput.value = "";
-            window.selectedFile = null;
-            window.capturedFile = null;
-            // Clear capture status if present.
-            let captureStatus = document.getElementById("captureStatus");
-            if (captureStatus) {
-                captureStatus.textContent = "";
-            }
-        } catch (error) {
-            console.error("❌ Image Processing Failed:", error);
-        } finally {
-            // Revert button text and re-enable the button.
-            uploadPlayerBtn.textContent = "Upload";
-            uploadPlayerBtn.disabled = false;
-        }
-    });
-
-// Helper: Converts a PNG file (blob) to a JPEG blob using a canvas.
-function convertPNGtoJPG(file) {
+// Global image processing: Brighten (110%), increase contrast (120%), and sharpen.
+// Disables image smoothing and converts the image to a JPEG blob (quality 1.0) for best quality.
+function processImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
+            // Create a canvas matching the image dimensions.
             const canvas = document.createElement("canvas");
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext("2d");
-            // Fill the canvas with white to eliminate transparency issues.
+            // Disable image smoothing for sharper output.
+            ctx.imageSmoothingEnabled = false;
+            // Apply brightness and contrast via CSS filters.
+            ctx.filter = "brightness(110%) contrast(120%)";
+            // Fill canvas with white (to remove transparency issues).
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Draw the image onto the canvas.
             ctx.drawImage(img, 0, 0);
-            // Convert canvas to JPEG blob with quality 90%
+            // Retrieve image data, apply sharpen filter, then update the canvas.
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const sharpenedData = applySharpen(imageData);
+            ctx.putImageData(sharpenedData, 0, 0);
+            // Convert the processed canvas to a JPEG blob with highest quality.
             canvas.toBlob((blob) => {
                 if (blob) {
                     resolve(blob);
                 } else {
-                    reject(new Error("PNG to JPEG conversion failed."));
+                    reject(new Error("Processing image failed."));
                 }
-            }, "image/jpeg", 0.9);
+            }, "image/jpeg", 1.0);
         };
         img.onerror = (error) => reject(error);
         img.src = URL.createObjectURL(file);
     });
 }
 
+// Remove background using remove.bg API.
+// This function processes the image globally (enhancing it) then sends the JPEG blob.
 async function removeBackground(file) {
-    console.log("🖼 Sending image to Remove.bg API...");
-
-    // If the file is PNG, convert it to JPEG first.
-    if (file.type === "image/png") {
-        console.log("🔄 Converting PNG to JPEG...");
-        try {
-            file = await convertPNGtoJPG(file);
-            console.log("✅ Conversion complete, new file type:", file.type);
-        } catch (error) {
-            console.error("❌ PNG to JPEG conversion failed:", error);
-            throw error;
-        }
-    }
-
-    const removeBgApiKey = "DM2d2GWCiDxUexxSrvbsV5ZA"; // Your API key
+    console.log("🖼 Processing image for remove.bg API...");
+    const processedFile = await processImage(file);
+    console.log("✅ Image processing complete. File type:", processedFile.type);
+    const removeBgApiKey = "DM2d2GWCiDxUexxSrvbsV5ZA"; // Replace with your API key
     const formData = new FormData();
-    formData.append("image_file", file);
+    formData.append("image_file", processedFile);
     formData.append("size", "auto");
 
+    console.log("🖼 Sending processed image to Remove.bg API...");
     const response = await fetch("https://api.remove.bg/v1.0/removebg", {
         method: "POST",
         headers: { "X-Api-Key": removeBgApiKey },
@@ -285,87 +146,251 @@ async function removeBackground(file) {
     return response.blob();
 }
 
+// Apply a round mask to the image using FaceMesh.
+// Detects the face, applies a circular mask, and crops the image to a square around the face.
+// Disables image smoothing to preserve sharpness.
+async function applyRoundMask(imageBlob) {
+    console.log("🎭 Applying round mask to image...");
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = async () => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(img, 0, 0);
+            console.log("🖼 Image drawn on canvas. Proceeding with FaceMesh...");
 
-    async function applyRoundMask(imageBlob) {
-        console.log("🎭 Applying round mask to image...");
-
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = async () => {
-                console.log("🖌 Drawing image on canvas...");
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                console.log("🖼 Image drawn on canvas. Proceeding with FaceMesh...");
-
-                try {
-                    if (!window.faceMeshModel) {
-                        console.log("🤖 Loading FaceMesh model...");
-                        window.faceMeshModel = await facemesh.load();
-                        console.log("✅ FaceMesh Model Loaded.");
-                    }
-                    console.log("🔍 Running FaceMesh on canvas. Waiting for response...");
-
-                    const faceDetectionTimeout = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error("⚠ FaceMesh timed out after 10 seconds.")), 10000)
-                    );
-                    const predictionsPromise = window.faceMeshModel.estimateFaces(canvas);
-                    const predictions = await Promise.race([predictionsPromise, faceDetectionTimeout]);
-                    console.log(`🔍 FaceMesh detected ${predictions.length} faces.`);
-
-                    if (predictions.length === 0) {
-                        console.warn("⚠ No face detected. Returning original image.");
-                        resolve(canvas.toDataURL("image/png"));
-                        return;
-                    }
-
-                    console.log("✅ Face detected. Applying mask...");
-                    const keypoints = predictions[0].scaledMesh;
-                    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-                    keypoints.forEach(([x, y]) => {
-                        if (x < minX) minX = x;
-                        if (x > maxX) maxX = x;
-                        if (y < minY) minY = y;
-                        if (y > maxY) maxY = y;
-                    });
-                    const faceWidth = maxX - minX;
-                    const faceHeight = maxY - minY;
-                    const faceCenterX = minX + faceWidth / 2;
-                    let faceCenterY = minY + faceHeight / 2;
-                    const circleRadius = Math.max(faceWidth, faceHeight) * 0.6;
-                    faceCenterY -= circleRadius * 0.23; // Move mask up
-
-                    console.log(`🔵 Mask Position | CenterX: ${faceCenterX}, CenterY: ${faceCenterY}, Radius: ${circleRadius}`);
-                    ctx.globalCompositeOperation = "destination-in";
-                    ctx.beginPath();
-                    ctx.arc(faceCenterX, faceCenterY, circleRadius, 0, Math.PI * 2);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.globalCompositeOperation = "source-over";
-
-                    console.log("✅ Mask applied successfully! Cropping image to square around mask.");
-                    const cropSize = circleRadius * 2;
-                    const cropX = faceCenterX - circleRadius;
-                    const cropY = faceCenterY - circleRadius;
-                    const croppedCanvas = document.createElement("canvas");
-                    croppedCanvas.width = cropSize;
-                    croppedCanvas.height = cropSize;
-                    const croppedCtx = croppedCanvas.getContext("2d");
-                    croppedCtx.drawImage(canvas, cropX, cropY, cropSize, cropSize, 0, 0, cropSize, cropSize);
-                    resolve(croppedCanvas.toDataURL("image/png"));
-                } catch (error) {
-                    console.error("❌ Error during FaceMesh processing:", error);
-                    resolve(canvas.toDataURL("image/png"));
+            try {
+                if (!window.faceMeshModel) {
+                    console.log("🤖 Loading FaceMesh model...");
+                    window.faceMeshModel = await facemesh.load();
+                    console.log("✅ FaceMesh Model Loaded.");
                 }
-            };
-            img.onerror = (error) => {
-                console.error("❌ Error loading image:", error);
-            };
-            img.src = URL.createObjectURL(imageBlob);
-        });
+                console.log("🔍 Calling estimateFaces on canvas...");
+                const faceDetectionTimeout = new Promise((_, reject) =>
+                    setTimeout(() => {
+                        console.log("⚠ FaceMesh timeout triggered after 10 seconds.");
+                        reject(new Error("⚠ FaceMesh timed out after 10 seconds."));
+                    }, 10000)
+                );
+                const predictionsPromise = window.faceMeshModel.estimateFaces(canvas);
+                console.log("⏳ Waiting for estimateFaces or timeout...");
+                const predictions = await Promise.race([predictionsPromise, faceDetectionTimeout]);
+                console.log(`🔍 FaceMesh detected ${predictions.length} faces.`);
+                if (predictions.length === 0) {
+                    console.warn("⚠ No face detected. Returning original image.");
+                    resolve(canvas.toDataURL("image/png"));
+                    return;
+                }
+                console.log("✅ Face detected. Applying mask...");
+                const keypoints = predictions[0].scaledMesh;
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                keypoints.forEach(([x, y]) => {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                });
+                const faceWidth = maxX - minX;
+                const faceHeight = maxY - minY;
+                const faceCenterX = minX + faceWidth / 2;
+                let faceCenterY = minY + faceHeight / 2;
+                const circleRadius = Math.max(faceWidth, faceHeight) * 0.6;
+                faceCenterY -= circleRadius * 0.23; // Move mask upward slightly
+                console.log(`🔵 Mask Position | CenterX: ${faceCenterX}, CenterY: ${faceCenterY}, Radius: ${circleRadius}`);
+                ctx.globalCompositeOperation = "destination-in";
+                ctx.beginPath();
+                ctx.arc(faceCenterX, faceCenterY, circleRadius, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.globalCompositeOperation = "source-over";
+                console.log("✅ Mask applied successfully! Cropping image to square around mask.");
+                const cropSize = circleRadius * 2;
+                const cropX = faceCenterX - circleRadius;
+                const cropY = faceCenterY - circleRadius;
+                const croppedCanvas = document.createElement("canvas");
+                croppedCanvas.width = cropSize;
+                croppedCanvas.height = cropSize;
+                const croppedCtx = croppedCanvas.getContext("2d");
+                croppedCtx.imageSmoothingEnabled = false;
+                croppedCtx.drawImage(canvas, cropX, cropY, cropSize, cropSize, 0, 0, cropSize, cropSize);
+                resolve(croppedCanvas.toDataURL("image/png"));
+            } catch (error) {
+                console.error("❌ Error during FaceMesh processing:", error);
+                resolve(canvas.toDataURL("image/png"));
+            }
+        };
+        img.onerror = (error) => {
+            console.error("❌ Error loading image:", error);
+        };
+        img.src = URL.createObjectURL(imageBlob);
+    });
+}
+
+//
+// Main Application Code
+//
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("📌 Page Loaded - Initializing Players");
+
+    const uploadedPlayersContainer = document.getElementById('uploaded-players');
+    const playerUpload = document.getElementById('playerUpload'); // File input for selecting an image from storage
+    const playerNameInput = document.getElementById('playerName');
+    const uploadPlayerBtn = document.getElementById('uploadPlayerBtn');
+    const startGameBtn = document.getElementById('startGameBtn');
+    const takePhotoBtn = document.getElementById('takePhotoBtn'); // Button for mobile camera capture
+
+    // For file selection, allow only image files (do not set capture so that on mobile it opens the gallery).
+    if (playerUpload) {
+        playerUpload.setAttribute("accept", "image/*");
     }
+
+    // Listen for changes on the Choose File input to store the selected file.
+    playerUpload.addEventListener('change', () => {
+        if (playerUpload.files && playerUpload.files[0]) {
+            window.selectedFile = playerUpload.files[0];
+            console.log("📁 File selected from storage:", window.selectedFile.name);
+        }
+    });
+
+    // Check for mobile device and camera access.
+    const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+    const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    takePhotoBtn.style.display = (isMobileDevice && hasCamera) ? "inline-block" : "none";
+
+    let players = JSON.parse(localStorage.getItem('players')) || [
+        { name: 'Alex', image: 'images/playerX.png' },
+        { name: 'Martin', image: 'images/playerO.png' }
+    ];
+
+    // Restore last used selected players from localStorage.
+    let storedSelectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers'));
+    let selectedPlayers = new Set();
+    if (storedSelectedPlayers) {
+        if (storedSelectedPlayers.player1) selectedPlayers.add(storedSelectedPlayers.player1);
+        if (storedSelectedPlayers.player2) selectedPlayers.add(storedSelectedPlayers.player2);
+    }
+    // Default to Alex and Martin if none are selected.
+    if (selectedPlayers.size === 0 && players.length === 2) {
+        selectedPlayers.add('Alex');
+        selectedPlayers.add('Martin');
+    }
+
+    function persistSelectedPlayers() {
+        localStorage.setItem('selectedPlayers', JSON.stringify({
+            player1: [...selectedPlayers][0] || null,
+            player2: [...selectedPlayers][1] || null
+        }));
+        console.log("💾 Persisted selected players:", localStorage.getItem('selectedPlayers'));
+    }
+    persistSelectedPlayers();
+    console.log("✅ Players selected after load:", Array.from(selectedPlayers));
+
+    // Event delegation for clicks within the players container.
+    uploadedPlayersContainer.addEventListener('click', (event) => {
+        if (event.target.classList.contains('player-checkbox')) {
+            handlePlayerSelection(event);
+        }
+        if (event.target.classList.contains('delete-player-btn')) {
+            deletePlayer(event);
+        }
+    });
+
+    // Handle Take Photo Button (Mobile)
+    takePhotoBtn.addEventListener("click", () => {
+        // Create a temporary file input for capturing photo.
+        const captureInput = document.createElement("input");
+        captureInput.type = "file";
+        captureInput.accept = "image/*";
+        captureInput.setAttribute("capture", "environment"); // Forces rear camera.
+        captureInput.style.display = "none";
+        document.body.appendChild(captureInput);
+        captureInput.addEventListener("change", () => {
+            const file = captureInput.files[0];
+            if (file) {
+                window.capturedFile = file;
+                console.log("📸 Photo captured from camera.");
+                let captureStatus = document.getElementById("captureStatus");
+                if (!captureStatus) {
+                    captureStatus = document.createElement("span");
+                    captureStatus.id = "captureStatus";
+                    captureStatus.style.marginLeft = "10px";
+                    takePhotoBtn.parentNode.insertBefore(captureStatus, takePhotoBtn.nextSibling);
+                }
+                captureStatus.textContent = "Photo captured";
+            }
+            document.body.removeChild(captureInput);
+        });
+        captureInput.click();
+    });
+
+    // Handle Image Upload (Either file selected from storage or captured via camera)
+    uploadPlayerBtn.addEventListener('click', async () => {
+        uploadPlayerBtn.textContent = "Uploading...";
+        uploadPlayerBtn.disabled = true;
+        
+        // Try to get file from the file input; otherwise, from stored globals.
+        const fileFromInput = playerUpload.files[0];
+        const file = fileFromInput || window.selectedFile || window.capturedFile;
+        const playerName = playerNameInput.value.trim();
+        console.log("📌 Upload button clicked. Processing player:", playerName);
+        
+        if (!file) {
+            alert("No file selected from storage or camera.");
+            console.log("⚠️ Upload Failed - No file selected.");
+            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.disabled = false;
+            return;
+        }
+        if (!playerName) {
+            alert("Please enter a player name.");
+            console.log("⚠️ Upload Failed - Missing name.");
+            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.disabled = false;
+            return;
+        }
+        if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
+            alert(`A player named "${playerName}" already exists.`);
+            console.log(`❌ Duplicate name detected: ${playerName}`);
+            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.disabled = false;
+            return;
+        }
+        try {
+            console.log("✅ Name is unique. Proceeding with image processing...");
+            console.log("📸 Attempting to process image for:", playerName);
+            console.log("🛠 File Details:", file);
+            console.log("🎨 Removing Background...");
+            const processedBlob = await removeBackground(file);
+            console.log("✅ Background Removed! Blob:", processedBlob);
+            console.log("🔵 Applying Round Mask...");
+            const finalImage = await applyRoundMask(processedBlob);
+            console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
+            players.push({ name: playerName, image: finalImage });
+            console.log(`✅ New Player Added: ${playerName}`);
+            console.log("🛠 Players After Processing:", players.map(p => p.name));
+            savePlayers();
+            renderPlayers();
+            console.log("📂 Image saved to localStorage.");
+            // Clear inputs and reset stored files.
+            playerUpload.value = "";
+            playerNameInput.value = "";
+            window.selectedFile = null;
+            window.capturedFile = null;
+            let captureStatus = document.getElementById("captureStatus");
+            if (captureStatus) {
+                captureStatus.textContent = "";
+            }
+        } catch (error) {
+            console.error("❌ Image Processing Failed:", error);
+        } finally {
+            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.disabled = false;
+        }
+    });
 
     function savePlayers() {
         localStorage.setItem('players', JSON.stringify(players));
@@ -374,7 +399,6 @@ async function removeBackground(file) {
     function renderPlayers() {
         console.log("🔄 Rendering Players...");
         uploadedPlayersContainer.innerHTML = "";
-
         players.forEach((p, index) => {
             const isChecked = selectedPlayers.has(p.name) ? "checked" : "";
             uploadedPlayersContainer.innerHTML += `
@@ -395,7 +419,6 @@ async function removeBackground(file) {
         const currentlySelected = selectedCheckboxes.length;
         console.log(`🎯 Player Clicked: ${event.target.value} | Checked: ${event.target.checked}`);
         console.log(`ℹ️ Updated Selected Players Count: ${currentlySelected}`);
-
         if (event.target.checked && currentlySelected > 2) {
             event.target.checked = false;
             alert("You must deselect one player before selecting another.");
@@ -409,11 +432,9 @@ async function removeBackground(file) {
             console.log("⚠️ Cannot deselect - Two players must always be selected.");
             return;
         }
-
         event.target.checked
             ? selectedPlayers.add(event.target.value)
             : selectedPlayers.delete(event.target.value);
-
         persistSelectedPlayers();
         updateCheckboxState();
     }
@@ -435,7 +456,6 @@ async function removeBackground(file) {
             players.splice(playerIndex, 1);
             savePlayers();
             renderPlayers();
-
             document.querySelectorAll('input[name="selectedPlayer"]').forEach(cb => {
                 if (selectedBeforeDelete.includes(cb.value)) {
                     cb.checked = true;
