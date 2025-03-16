@@ -224,25 +224,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    async function removeBackground(file) {
-        console.log("🖼 Sending image to Remove.bg API...");
-        const removeBgApiKey = "DM2d2GWCiDxUexxSrvbsV5ZA"; // Your API key
-        const formData = new FormData();
-        formData.append("image_file", file);
-        formData.append("size", "auto");
+async function removeBackground(file) {
+    console.log("🖼 Sending image to Remove.bg API...");
+    const removeBgApiKey = "DM2d2GWCiDxUexxSrvbsV5ZA"; // Your API key
+    const formData = new FormData();
+    formData.append("image_file", file);
+    formData.append("size", "auto");
 
-        const response = await fetch("https://api.remove.bg/v1.0/removebg", {
-            method: "POST",
-            headers: { "X-Api-Key": removeBgApiKey },
-            body: formData
-        });
+    const response = await fetch("https://api.remove.bg/v1.0/removebg", {
+        method: "POST",
+        headers: { "X-Api-Key": removeBgApiKey },
+        body: formData
+    });
 
-        if (!response.ok) {
-            throw new Error(`❌ Remove.bg API Error: ${response.statusText}`);
-        }
-        console.log("✅ Received processed image from Remove.bg.");
-        return response.blob();
+    if (!response.ok) {
+        const errorDetails = await response.text();
+        throw new Error(`❌ Remove.bg API Error: ${response.statusText}. Details: ${errorDetails}`);
     }
+    console.log("✅ Received processed image from Remove.bg.");
+    return response.blob();
+}
+
 
     async function applyRoundMask(imageBlob) {
         console.log("🎭 Applying round mask to image...");
