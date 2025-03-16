@@ -112,16 +112,24 @@ document.addEventListener('DOMContentLoaded', () => {
         uploadPlayerBtn.textContent = "Uploading...";
         uploadPlayerBtn.disabled = true;
         
-        // Use the file stored from the file input change event; otherwise, use the captured file.
-        const fileFromUpload = window.selectedFile;
-        const file = fileFromUpload || window.capturedFile;
+        // Attempt to get the file directly from the file input, then fallback.
+        const fileFromInput = playerUpload.files[0];
+        const file = fileFromInput || window.selectedFile || window.capturedFile;
         const playerName = playerNameInput.value.trim();
 
         console.log("📌 Upload button clicked. Processing player:", playerName);
 
-        if (!file || !playerName) {
-            alert("Please take a photo or select an image and enter a name.");
-            console.log("⚠️ Upload Failed - Missing Name or Image.");
+        if (!file) {
+            alert("No file selected from storage or camera.");
+            console.log("⚠️ Upload Failed - No file selected.");
+            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.disabled = false;
+            return;
+        }
+
+        if (!playerName) {
+            alert("Please enter a player name.");
+            console.log("⚠️ Upload Failed - Missing name.");
             uploadPlayerBtn.textContent = "Upload";
             uploadPlayerBtn.disabled = false;
             return;
@@ -279,26 +287,24 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('players', JSON.stringify(players));
     }
 
+    function renderPlayers() {
+        console.log("🔄 Rendering Players...");
+        uploadedPlayersContainer.innerHTML = "";
 
-	function renderPlayers() {
-		console.log("🔄 Rendering Players...");
-		uploadedPlayersContainer.innerHTML = "";
-
-		players.forEach((p, index) => {
-			const isChecked = selectedPlayers.has(p.name) ? "checked" : "";
-			uploadedPlayersContainer.innerHTML += `
-				<div class="player-selection">
-					<input type="checkbox" name="selectedPlayer" value="${p.name}" class="player-checkbox" ${isChecked}>
-					<img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:190px;">
-					<span>${p.name}</span>
-					${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">❌</button>` : ""}
-				</div>
-			`;
-			console.log(`✅ Player Rendered: ${p.name} (Checked: ${isChecked})`);
-		});
-		updateCheckboxState();
-	}
-
+        players.forEach((p, index) => {
+            const isChecked = selectedPlayers.has(p.name) ? "checked" : "";
+            uploadedPlayersContainer.innerHTML += `
+                <div class="player-selection">
+                    <input type="checkbox" name="selectedPlayer" value="${p.name}" class="player-checkbox" ${isChecked}>
+                    <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:190px;">
+                    <span>${p.name}</span>
+                    ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">❌</button>` : ""}
+                </div>
+            `;
+            console.log(`✅ Player Rendered: ${p.name} (Checked: ${isChecked})`);
+        });
+        updateCheckboxState();
+    }
 
     function handlePlayerSelection(event) {
         const selectedCheckboxes = document.querySelectorAll('input[name="selectedPlayer"]:checked');
