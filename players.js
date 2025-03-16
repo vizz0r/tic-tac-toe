@@ -220,6 +220,17 @@ async function applyRoundMask(imageBlob) {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("📌 Page Loaded - Initializing Players");
+	window.addEventListener('scroll', function() {
+  const selectionTitle = document.getElementById('selection-title');
+  if (selectionTitle) {
+    const rect = selectionTitle.getBoundingClientRect();
+    if (rect.top <= 0) {
+      selectionTitle.classList.add('drop-shadow');
+    } else {
+      selectionTitle.classList.remove('drop-shadow');
+    }
+  }
+});
 
     // Create the message container below the players grid if it doesn't exist.
     let messageContainer = document.getElementById('message-container');
@@ -333,17 +344,27 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("✅ Players selected after load:", Array.from(selectedPlayers));
 
     // Event delegation for players grid: clicking a card toggles selection; delete button handles deletion.
-    uploadedPlayersContainer.addEventListener('click', (event) => {
-        if (event.target.closest('.delete-player-btn')) {
-            deletePlayer(event);
-            return;
-        }
-        const playerDiv = event.target.closest('.player-selection');
-        if (playerDiv) {
-            const playerName = playerDiv.getAttribute('data-player-name');
-            handlePlayerSelection(playerName);
-        }
-    });
+	uploadedPlayersContainer.addEventListener('click', (event) => {
+		if (event.target.closest('.delete-player-btn')) {
+			deletePlayer(event);
+			return;
+		}
+		const playerDiv = event.target.closest('.player-selection');
+		if (playerDiv) {
+			if (playerDiv.classList.contains('add-new')) {
+				const newPlayerContainer = document.getElementById('newPlayerContainer');
+				// Only set it to visible if it's currently hidden
+				if (newPlayerContainer && (newPlayerContainer.style.display === "none" || newPlayerContainer.style.display === "")) {
+					newPlayerContainer.style.display = "inline-flex";
+					newPlayerContainer.style.flexDirection = "column";
+				}
+			} else {
+				const playerName = playerDiv.getAttribute('data-player-name');
+				handlePlayerSelection(playerName);
+			}
+		}
+	});
+
 
     // Mobile: Handle Take Photo Button.
     takePhotoBtn.addEventListener("click", () => {
@@ -454,23 +475,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Render players (grid cards). Each card is clickable, and a "Selected" tag appears if selected.
-    function renderPlayers() {
-        console.log("🔄 Rendering Players...");
-        uploadedPlayersContainer.innerHTML = "";
-        players.forEach((p, index) => {
-            const isSelected = selectedPlayers.has(p.name);
-            uploadedPlayersContainer.innerHTML += `
-                <div class="player-selection ${isSelected ? 'selected' : ''}" data-player-name="${p.name}">
-                    ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
-                    <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:214px;">
-                    <span class="player-name">${p.name}</span>
-                    ${isSelected ? `<div class="selected-tag">Selected</div>` : ''}
-                </div>
-            `;
-            console.log(`✅ Player Rendered: ${p.name} (Selected: ${isSelected})`);
-        });
-        updateSelectionTitle();
-    }
+function renderPlayers() {
+    console.log("🔄 Rendering Players...");
+    uploadedPlayersContainer.innerHTML = "";
+    players.forEach((p, index) => {
+        const isSelected = selectedPlayers.has(p.name);
+        uploadedPlayersContainer.innerHTML += `
+            <div class="player-selection ${isSelected ? 'selected' : ''}" data-player-name="${p.name}">
+                ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
+                <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:214px;">
+                <span class="player-name">${p.name}</span>
+                ${isSelected ? `<div class="selected-tag">Selected</div>` : ''}
+            </div>
+        `;
+        console.log(`✅ Player Rendered: ${p.name} (Selected: ${isSelected})`);
+    });
+    // Append the "Add New Player" card
+    uploadedPlayersContainer.innerHTML += `
+        <div class="player-selection add-new" data-action="add-new">
+            <span class="plus-icon">+</span>
+            <span class="player-name">Add New Player</span>
+        </div>
+    `;
+    updateSelectionTitle();
+}
 
     // Toggle selection based on player name.
     function handlePlayerSelection(playerName) {

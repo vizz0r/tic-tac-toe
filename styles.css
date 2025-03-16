@@ -16,6 +16,15 @@ h1 {
 
 #selection-title {
 	padding-top: 20px;
+	position: sticky;
+    top: 0;
+    background: #f2f2f2; /* match your body background */
+    z-index: 10;
+}
+
+.drop-shadow {
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  margin: 0 -20px;
 }
 	
 
@@ -29,13 +38,17 @@ h1 {
 }
 /* Message container */
 #message-container {
-    margin-top: 20px;
+	position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    margin: 0;
+    z-index: 100;
     padding: 10px;
-    border: 1px solid #ffc107;
+    border-top: 1px solid #ffc107;
     background-color: #fff3cd;
     color: #856404;
     font-size: 16px;
-    border-radius: 4px;
     display: none; /* Hidden by default */
 }
 
@@ -83,6 +96,31 @@ h1 {
     left: 0;
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
+}
+
+/* New Add New Player Card Styling */
+.player-selection.add-new {
+    display: inline-block;
+    width: auto;
+    padding: 15px;
+    border: 2px dashed #007BFF;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: pointer;
+    text-align: center;
+	user-select: none;
+}
+.player-selection.add-new:hover {
+	background: #e1e1e1;
+}
+.player-selection.add-new .plus-icon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 10px;
+}
+.player-selection.add-new .player-name {
+    font-size: 18px;
+    font-weight: bold;
 }
 
 /* Style player names with increased font size and boldness */
@@ -136,10 +174,12 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 
 /* New player container: vertical layout for file input, name input, and Add Player button */
 #newPlayerContainer {
-    display: flex;
+    display: none; /* hidden by default */
     flex-direction: column;
     gap: 10px;
-    margin-top: 10px;
+    margin: 20px auto;
+    text-align: center;
+    width: auto;
 }
 
 /* Ensure images are responsive */
