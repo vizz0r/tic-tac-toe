@@ -182,12 +182,12 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
     width: auto;
 }
 
-/* Style for tab buttons inside the tab controls container */
+/* Base style for all tabs */
 #tabControls .tab {
   padding: 10px 20px;
   border: none;
-  background: #ddd;
-  color: #333;
+  background: #ddd;       /* light gray for inactive tabs */
+  color: #333;            /* dark text for inactive tabs */
   font-size: 16px;
   cursor: pointer;
   margin: 0 5px;
@@ -195,12 +195,19 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
   transition: background 0.3s, color 0.3s;
 }
 
-/* Style for the active tab */
+/* Inactive tabs explicitly */
+#tabControls .tab:not(.active) {
+  background: #ddd;
+  color: #333;
+}
+
+/* Active tab styling */
 #tabControls .tab.active {
-  background: #007BFF;
-  color: #fff;
+  background: #007BFF;  /* blue for active tab */
+  color: #fff;          /* white text for active tab */
   font-weight: bold;
 }
+
 
 
 /* Ensure images are responsive */
