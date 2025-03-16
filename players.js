@@ -42,41 +42,16 @@
 // Global Helper Functions
 //
 
-// 1) Lighten shadows by checking if the pixel average < 128 and adding a fraction of (128 - avg).
-function lightenShadows(imageData) {
-    const data = imageData.data;
-    const factor = 0.4; // Adjust this factor to lighten shadows more or less.
-    for (let i = 0; i < data.length; i += 4) {
-        let r = data[i];
-        let g = data[i + 1];
-        let b = data[i + 2];
-        const avg = (r + g + b) / 3;
-        if (avg < 128) {
-            const lighten = factor * (128 - avg);
-            // Add 'lighten' to each channel, clamp to 255.
-            r = Math.min(255, r + lighten);
-            g = Math.min(255, g + lighten);
-            b = Math.min(255, b + lighten);
-        }
-        data[i] = r;
-        data[i + 1] = g;
-        data[i + 2] = b;
-        // data[i + 3] is alpha; leave as is.
-    }
-    return imageData;
-}
-
-// 2) Apply a sharpen filter using a 3x3 convolution kernel that sums to 1.
+// Apply a simple sharpen filter using a 3x3 convolution kernel.
 function applySharpen(imageData) {
     const width = imageData.width, height = imageData.height;
     const src = imageData.data;
     const output = new Uint8ClampedArray(src.length);
-
-    // Kernel with a sum of 1, preserving brightness, but with ~25% reduced sharpen from original.
+    // Sharpen kernel.
     const kernel = [
-        0,    -0.75,  0,
-       -0.75,  4,    -0.75,
-        0,    -0.75,  0
+         0, -1,  0,
+        -1,  5, -1,
+         0, -1,  0
     ];
     const kernelSize = 3;
     const half = Math.floor(kernelSize / 2);
@@ -91,7 +66,7 @@ function applySharpen(imageData) {
                     if (px >= 0 && px < width && py >= 0 && py < height) {
                         const offset = (py * width + px) * 4;
                         const weight = kernel[(ky + half) * kernelSize + (kx + half)];
-                        r += src[offset]     * weight;
+                        r += src[offset] * weight;
                         g += src[offset + 1] * weight;
                         b += src[offset + 2] * weight;
                     }
@@ -107,8 +82,8 @@ function applySharpen(imageData) {
     return new ImageData(output, width, height);
 }
 
-// Global image processing: Brighten (105%), increase contrast (110%), lighten shadows,
-// then apply the reduced-sharpen kernel. Disables image smoothing & outputs a JPEG blob (1.0).
+// Global image processing: Brighten (105%), increase contrast (105%), and sharpen.
+// Disables image smoothing and converts the image to a JPEG blob (quality 1.0) for best quality.
 function processImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -120,25 +95,18 @@ function processImage(file) {
             const ctx = canvas.getContext("2d");
             // Disable image smoothing for sharper output.
             ctx.imageSmoothingEnabled = false;
-            // Apply brightness and contrast (105%, 115%).
-            ctx.filter = "brightness(105%) contrast(115%)";
-            // Fill canvas with white (to remove transparency).
+            // Apply brightness and contrast
+            ctx.filter = "brightness(105%) contrast(105%)";
+            // Fill canvas with white (to remove transparency issues).
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             // Draw the image onto the canvas.
             ctx.drawImage(img, 0, 0);
-
-            // 1) Lighten shadows
-            let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            imageData = lightenShadows(imageData);
-            ctx.putImageData(imageData, 0, 0);
-
-            // 2) Apply sharpen
-            imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            imageData = applySharpen(imageData);
-            ctx.putImageData(imageData, 0, 0);
-
-            // Convert the processed canvas to a JPEG blob with quality 1.0 (max).
+            // Retrieve image data, apply sharpen filter, then update the canvas.
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const sharpenedData = applySharpen(imageData);
+            ctx.putImageData(sharpenedData, 0, 0);
+            // Convert the processed canvas to a JPEG blob with highest quality.
             canvas.toBlob((blob) => {
                 if (blob) {
                     resolve(blob);
@@ -153,7 +121,7 @@ function processImage(file) {
 }
 
 // Remove background using remove.bg API.
-// This function processes the image (enhancement) then sends the JPEG blob.
+// This function processes the image globally (enhancing it) then sends the JPEG blob.
 async function removeBackground(file) {
     console.log("🖼 Processing image for remove.bg API...");
     const processedFile = await processImage(file);
@@ -179,7 +147,8 @@ async function removeBackground(file) {
 }
 
 // Apply a round mask to the image using FaceMesh.
-// Detects the face, applies a circular mask, and crops to a square around the face.
+// Detects the face, applies a circular mask, and crops the image to a square around the face.
+// Disables image smoothing to preserve sharpness.
 async function applyRoundMask(imageBlob) {
     console.log("🎭 Applying round mask to image...");
     return new Promise((resolve) => {
