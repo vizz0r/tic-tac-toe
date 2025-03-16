@@ -2,22 +2,23 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("📌 Page Loaded - Initializing Players");
 
     const uploadedPlayersContainer = document.getElementById('uploaded-players');
-    const playerUpload = document.getElementById('playerUpload'); // File input for uploading image
+    const playerUpload = document.getElementById('playerUpload'); // File input for selecting an image from storage
     const playerNameInput = document.getElementById('playerName');
     const uploadPlayerBtn = document.getElementById('uploadPlayerBtn');
     const startGameBtn = document.getElementById('startGameBtn');
-    const takePhotoBtn = document.getElementById('takePhotoBtn'); // Button for mobile camera
+    const takePhotoBtn = document.getElementById('takePhotoBtn'); // Button for mobile camera capture
 
-    // Only apply camera capture option if it's a mobile device
+    // For file selection, only allow image files.
     if (playerUpload) {
         playerUpload.setAttribute("accept", "image/*"); // Only image files accepted
-        playerUpload.setAttribute("capture", "environment"); // Forces rear camera on mobile
+        // Note: Do NOT set the "capture" attribute here so that on mobile it opens the gallery.
     }
 
     // Check for mobile device and camera access
     const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
     const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
 
+    // On desktop, hide the takePhotoBtn; on mobile, show it if a camera is available.
     takePhotoBtn.style.display = (isMobileDevice && hasCamera) ? "inline-block" : "none";
 
     let players = JSON.parse(localStorage.getItem('players')) || [
@@ -34,17 +35,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (storedSelectedPlayers.player2) selectedPlayers.add(storedSelectedPlayers.player2);
     }
 
-    // If only one player is selected and more exist, retain it instead of clearing
+    // If only one player is selected and more exist, retain it instead of clearing.
     if (selectedPlayers.size === 1 && players.length > 2) {
         console.log("⚠️ Only one player was selected on refresh. Retaining selection.");
     }
-    // If no players were selected and only Alex & Martin exist, default to them
+    // If no players were selected and only Alex & Martin exist, default to them.
     if (selectedPlayers.size === 0 && players.length === 2) {
         selectedPlayers.add('Alex');
         selectedPlayers.add('Martin');
     }
 
-    // Helper function to persist selected players to localStorage
+    // Helper function to persist selected players to localStorage.
     function persistSelectedPlayers() {
         localStorage.setItem('selectedPlayers', JSON.stringify({
             player1: [...selectedPlayers][0] || null,
@@ -53,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("💾 Persisted selected players:", localStorage.getItem('selectedPlayers'));
     }
 
-    // Persist selections once on load
+    // Persist selections once on load.
     persistSelectedPlayers();
     console.log("✅ Players selected after load:", Array.from(selectedPlayers));
 
@@ -67,14 +68,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Take Photo Button (Mobile)
+    // Handle Take Photo Button (Mobile) by creating a temporary file input with capture attribute.
     takePhotoBtn.addEventListener("click", () => {
-        playerUpload.click();
+        const captureInput = document.createElement("input");
+        captureInput.type = "file";
+        captureInput.accept = "image/*";
+        captureInput.setAttribute("capture", "environment"); // Forces rear camera
+        captureInput.style.display = "none";
+        document.body.appendChild(captureInput);
+        captureInput.addEventListener("change", () => {
+            const file = captureInput.files[0];
+            if (file) {
+                window.capturedFile = file; // Store the captured file globally.
+                console.log("📸 Photo captured from camera.");
+            }
+            document.body.removeChild(captureInput);
+        });
+        captureInput.click();
     });
 
-    // Handle Image Upload (Either File or Camera)
+    // Handle Image Upload (Either file selected from storage or captured via camera)
     uploadPlayerBtn.addEventListener('click', async () => {
-        const file = playerUpload.files[0];
+        // First check for a file selected via the file input; otherwise, check for a captured file.
+        const fileFromUpload = playerUpload.files[0];
+        const file = fileFromUpload || window.capturedFile;
         const playerName = playerNameInput.value.trim();
 
         console.log("📌 Upload button clicked. Processing player:", playerName);
@@ -111,10 +128,10 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPlayers();
             console.log("📂 Image saved to localStorage.");
 
-            // Clear Inputs
+            // Clear inputs and reset captured file.
             playerUpload.value = "";
             playerNameInput.value = "";
-
+            window.capturedFile = null;
         } catch (error) {
             console.error("❌ Image Processing Failed:", error);
         }
