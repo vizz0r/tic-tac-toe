@@ -47,8 +47,6 @@ function applySharpen(imageData) {
     const width = imageData.width, height = imageData.height;
     const src = imageData.data;
     const output = new Uint8ClampedArray(src.length);
-
-    // Kernel with sum=1, so it doesn't darken/brighten the image overall.
     const kernel = [
          0, -1,  0,
         -1,  5, -1,
@@ -56,7 +54,6 @@ function applySharpen(imageData) {
     ];
     const kernelSize = 3;
     const half = Math.floor(kernelSize / 2);
-
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             let r = 0, g = 0, b = 0;
@@ -77,7 +74,7 @@ function applySharpen(imageData) {
             output[index]     = Math.min(255, Math.max(0, r));
             output[index + 1] = Math.min(255, Math.max(0, g));
             output[index + 2] = Math.min(255, Math.max(0, b));
-            output[index + 3] = src[index + 3]; // preserve alpha
+            output[index + 3] = src[index + 3];
         }
     }
     return new ImageData(output, width, height);
@@ -89,25 +86,18 @@ function processImage(file) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => {
-            // Create a canvas matching the image dimensions.
             const canvas = document.createElement("canvas");
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext("2d");
-            // Disable image smoothing for sharper output.
             ctx.imageSmoothingEnabled = false;
-            // Apply brightness, contrast, and saturation.
             ctx.filter = "brightness(105%) contrast(105%) saturate(120%)";
-            // Fill canvas with white (to remove transparency).
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // Draw the image onto the canvas.
             ctx.drawImage(img, 0, 0);
-            // Retrieve image data, apply sharpen filter, then update the canvas.
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const sharpenedData = applySharpen(imageData);
             ctx.putImageData(sharpenedData, 0, 0);
-            // Convert the processed canvas to a JPEG blob with highest quality (1.0).
             canvas.toBlob((blob) => {
                 if (blob) {
                     resolve(blob);
@@ -122,7 +112,6 @@ function processImage(file) {
 }
 
 // Remove background using remove.bg API.
-// This function processes the image (enhancement) then sends the JPEG blob.
 async function removeBackground(file) {
     console.log("🖼 Processing image for remove.bg API...");
     const processedFile = await processImage(file);
@@ -131,14 +120,12 @@ async function removeBackground(file) {
     const formData = new FormData();
     formData.append("image_file", processedFile);
     formData.append("size", "auto");
-
     console.log("🖼 Sending processed image to Remove.bg API...");
     const response = await fetch("https://api.remove.bg/v1.0/removebg", {
         method: "POST",
         headers: { "X-Api-Key": removeBgApiKey },
         body: formData
     });
-
     if (!response.ok) {
         const errorDetails = await response.text();
         throw new Error(`❌ Remove.bg API Error: ${response.statusText}. Details: ${errorDetails}`);
@@ -148,7 +135,6 @@ async function removeBackground(file) {
 }
 
 // Apply a round mask to the image using FaceMesh.
-// Detects the face, applies a circular mask, and crops to a square around the face.
 async function applyRoundMask(imageBlob) {
     console.log("🎭 Applying round mask to image...");
     return new Promise((resolve) => {
@@ -161,7 +147,6 @@ async function applyRoundMask(imageBlob) {
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(img, 0, 0);
             console.log("🖼 Image drawn on canvas. Proceeding with FaceMesh...");
-
             try {
                 if (!window.faceMeshModel) {
                     console.log("🤖 Loading FaceMesh model...");
@@ -198,7 +183,7 @@ async function applyRoundMask(imageBlob) {
                 const faceCenterX = minX + faceWidth / 2;
                 let faceCenterY = minY + faceHeight / 2;
                 const circleRadius = Math.max(faceWidth, faceHeight) * 0.6;
-                faceCenterY -= circleRadius * 0.23; // Move mask upward slightly
+                faceCenterY -= circleRadius * 0.23;
                 console.log(`🔵 Mask Position | CenterX: ${faceCenterX}, CenterY: ${faceCenterY}, Radius: ${circleRadius}`);
                 ctx.globalCompositeOperation = "destination-in";
                 ctx.beginPath();
@@ -236,44 +221,102 @@ async function applyRoundMask(imageBlob) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("📌 Page Loaded - Initializing Players");
 
-    const uploadedPlayersContainer = document.getElementById('uploaded-players');
-    const playerUpload = document.getElementById('playerUpload'); // File input for selecting an image from storage
-    const playerNameInput = document.getElementById('playerName');
-    const uploadPlayerBtn = document.getElementById('uploadPlayerBtn');
-    const startGameBtn = document.getElementById('startGameBtn');
-    const takePhotoBtn = document.getElementById('takePhotoBtn'); // Button for mobile camera capture
+    // Create the message container below the players grid if it doesn't exist.
+    let messageContainer = document.getElementById('message-container');
+    if (!messageContainer) {
+        messageContainer = document.createElement('div');
+        messageContainer.id = 'message-container';
+        const uploadedPlayersContainer = document.getElementById('uploaded-players');
+        uploadedPlayersContainer.parentNode.insertBefore(messageContainer, uploadedPlayersContainer.nextSibling);
+    }
+    if (messageContainer.innerHTML.trim() === "") {
+        messageContainer.style.display = "none";
+    }
+    // Helper function to display messages (replacing alerts).
+    function displayMessage(text) {
+        messageContainer.style.display = "block";
+        messageContainer.innerHTML = `<span class="warning-icon">⚠️</span> ${text}`;
+        setTimeout(() => {
+            messageContainer.innerHTML = "";
+            messageContainer.style.display = "none";
+        }, 5000);
+    }
 
-    // For file selection, allow only image files (do not set capture so that on mobile it opens the gallery).
+    // NEW PLAYER TOGGLE & CONTAINER SETUP
+    const newPlayerToggle = document.getElementById('newPlayerToggle');
+    const newPlayerContainer = document.getElementById('newPlayerContainer');
+    if (newPlayerToggle && newPlayerContainer) {
+        newPlayerToggle.checked = false; // Off by default.
+        newPlayerContainer.style.display = "none";
+        newPlayerToggle.addEventListener('change', () => {
+            if (newPlayerToggle.checked) {
+                newPlayerContainer.style.display = "flex";
+                newPlayerContainer.style.flexDirection = "column";
+            } else {
+                newPlayerContainer.style.display = "none";
+            }
+        });
+    }
+
+    // Retrieve players grid and new player section elements.
+    const uploadedPlayersContainer = document.getElementById('uploaded-players');
+    // New player section elements:
+    const browseButton = document.getElementById('browseButton');
+    const playerUpload = document.getElementById('playerUpload'); // Hidden file input inside newPlayerContainer
+    const playerNameInput = document.getElementById('playerName');
+    const uploadPlayerBtn = document.getElementById('uploadPlayerBtn'); // Now labeled "Add Player"
+    const takePhotoBtn = document.getElementById('takePhotoBtn'); // Mobile camera capture
+    const startGameBtn = document.getElementById('startGameBtn');
+
+    // Attach custom file input event listener for the "Browse" button.
+    if (browseButton && playerUpload) {
+      browseButton.addEventListener('click', () => {
+        playerUpload.click();
+      });
+    }
+
+    // Set file input to accept image files.
     if (playerUpload) {
         playerUpload.setAttribute("accept", "image/*");
     }
-
-    // Listen for changes on the Choose File input to store the selected file.
+    // When a file is selected, swap the file label with the file name display.
     playerUpload.addEventListener('change', () => {
+        // Get the fileNameDisplay element and the file label from within the "browse" container.
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const fileLabel = document.querySelector('#browse .file-label');
         if (playerUpload.files && playerUpload.files[0]) {
             window.selectedFile = playerUpload.files[0];
             console.log("📁 File selected from storage:", window.selectedFile.name);
+            if (fileNameDisplay && fileLabel) {
+                fileNameDisplay.textContent = window.selectedFile.name;
+                fileNameDisplay.style.display = "inline-block";
+                fileLabel.style.display = "none";
+            }
+        } else {
+            if (fileNameDisplay && fileLabel) {
+                fileNameDisplay.textContent = "No file attached.";
+                fileNameDisplay.style.display = "inline-block";
+                fileLabel.style.display = "none";
+            }
         }
     });
 
-    // Check for mobile device and camera access.
+    // Detect mobile device and camera.
     const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
     const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
     takePhotoBtn.style.display = (isMobileDevice && hasCamera) ? "inline-block" : "none";
 
+    // Retrieve stored players.
     let players = JSON.parse(localStorage.getItem('players')) || [
         { name: 'Alex', image: 'images/playerX.png' },
         { name: 'Martin', image: 'images/playerO.png' }
     ];
-
-    // Restore last used selected players from localStorage.
     let storedSelectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers'));
     let selectedPlayers = new Set();
     if (storedSelectedPlayers) {
         if (storedSelectedPlayers.player1) selectedPlayers.add(storedSelectedPlayers.player1);
         if (storedSelectedPlayers.player2) selectedPlayers.add(storedSelectedPlayers.player2);
     }
-    // Default to Alex and Martin if none are selected.
     if (selectedPlayers.size === 0 && players.length === 2) {
         selectedPlayers.add('Alex');
         selectedPlayers.add('Martin');
@@ -289,23 +332,25 @@ document.addEventListener('DOMContentLoaded', () => {
     persistSelectedPlayers();
     console.log("✅ Players selected after load:", Array.from(selectedPlayers));
 
-    // Event delegation for clicks within the players container.
+    // Event delegation for players grid: clicking a card toggles selection; delete button handles deletion.
     uploadedPlayersContainer.addEventListener('click', (event) => {
-        if (event.target.classList.contains('player-checkbox')) {
-            handlePlayerSelection(event);
-        }
-        if (event.target.classList.contains('delete-player-btn')) {
+        if (event.target.closest('.delete-player-btn')) {
             deletePlayer(event);
+            return;
+        }
+        const playerDiv = event.target.closest('.player-selection');
+        if (playerDiv) {
+            const playerName = playerDiv.getAttribute('data-player-name');
+            handlePlayerSelection(playerName);
         }
     });
 
-    // Handle Take Photo Button (Mobile)
+    // Mobile: Handle Take Photo Button.
     takePhotoBtn.addEventListener("click", () => {
-        // Create a temporary file input for capturing photo.
         const captureInput = document.createElement("input");
         captureInput.type = "file";
         captureInput.accept = "image/*";
-        captureInput.setAttribute("capture", "environment"); // Forces rear camera.
+        captureInput.setAttribute("capture", "environment");
         captureInput.style.display = "none";
         document.body.appendChild(captureInput);
         captureInput.addEventListener("change", () => {
@@ -327,35 +372,39 @@ document.addEventListener('DOMContentLoaded', () => {
         captureInput.click();
     });
 
-    // Handle Image Upload (Either file selected from storage or captured via camera)
+    // Handle New Player Upload (Add Player) with separate validation.
     uploadPlayerBtn.addEventListener('click', async () => {
-        uploadPlayerBtn.textContent = "Uploading...";
+        uploadPlayerBtn.textContent = "Adding Player...";
         uploadPlayerBtn.disabled = true;
         
-        // Try to get file from the file input; otherwise, from stored globals.
         const fileFromInput = playerUpload.files[0];
         const file = fileFromInput || window.selectedFile || window.capturedFile;
         const playerName = playerNameInput.value.trim();
-        console.log("📌 Upload button clicked. Processing player:", playerName);
+        console.log("📌 Add Player button clicked. Processing player:", playerName);
         
+        // Validate file input.
         if (!file) {
-            alert("No file selected from storage or camera.");
+            const errorMessage = isMobileDevice 
+              ? "No image selected from gallery or camera." 
+              : "No image selected for upload.";
+            displayMessage(errorMessage);
             console.log("⚠️ Upload Failed - No file selected.");
-            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.textContent = "Add Player";
             uploadPlayerBtn.disabled = false;
             return;
         }
+        // Validate player name input.
         if (!playerName) {
-            alert("Please enter a player name.");
+            displayMessage("Please enter a player name.");
             console.log("⚠️ Upload Failed - Missing name.");
-            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.textContent = "Add Player";
             uploadPlayerBtn.disabled = false;
             return;
         }
         if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
-            alert(`A player named "${playerName}" already exists.`);
+            displayMessage(`A player named "${playerName}" already exists.`);
             console.log(`❌ Duplicate name detected: ${playerName}`);
-            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.textContent = "Add Player";
             uploadPlayerBtn.disabled = false;
             return;
         }
@@ -384,10 +433,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (captureStatus) {
                 captureStatus.textContent = "";
             }
+            // Reset the file input display: show the label and hide the file name display.
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            const fileLabel = document.querySelector('#browse .file-label');
+            if (fileNameDisplay && fileLabel) {
+                fileNameDisplay.textContent = "";
+                fileNameDisplay.style.display = "none";
+                fileLabel.style.display = "inline";
+            }
         } catch (error) {
             console.error("❌ Image Processing Failed:", error);
         } finally {
-            uploadPlayerBtn.textContent = "Upload";
+            uploadPlayerBtn.textContent = "Add Player";
             uploadPlayerBtn.disabled = false;
         }
     });
@@ -396,95 +453,79 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('players', JSON.stringify(players));
     }
 
+    // Render players (grid cards). Each card is clickable, and a "Selected" tag appears if selected.
     function renderPlayers() {
         console.log("🔄 Rendering Players...");
         uploadedPlayersContainer.innerHTML = "";
         players.forEach((p, index) => {
-            const isChecked = selectedPlayers.has(p.name) ? "checked" : "";
+            const isSelected = selectedPlayers.has(p.name);
             uploadedPlayersContainer.innerHTML += `
-                <div class="player-selection">
-                    <input type="checkbox" name="selectedPlayer" value="${p.name}" class="player-checkbox" ${isChecked}>
+                <div class="player-selection ${isSelected ? 'selected' : ''}" data-player-name="${p.name}">
+                    ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
                     <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:214px;">
-                    <span>${p.name}</span>
-                    ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">❌</button>` : ""}
+                    <span class="player-name">${p.name}</span>
+                    ${isSelected ? `<div class="selected-tag">Selected</div>` : ''}
                 </div>
             `;
-            console.log(`✅ Player Rendered: ${p.name} (Checked: ${isChecked})`);
+            console.log(`✅ Player Rendered: ${p.name} (Selected: ${isSelected})`);
         });
-        updateCheckboxState();
+        updateSelectionTitle();
     }
 
-    function handlePlayerSelection(event) {
-        const selectedCheckboxes = document.querySelectorAll('input[name="selectedPlayer"]:checked');
-        const currentlySelected = selectedCheckboxes.length;
-        console.log(`🎯 Player Clicked: ${event.target.value} | Checked: ${event.target.checked}`);
-        console.log(`ℹ️ Updated Selected Players Count: ${currentlySelected}`);
-        if (event.target.checked && currentlySelected > 2) {
-            event.target.checked = false;
-            alert("You must deselect one player before selecting another.");
-            console.log("❌ Too Many Players Selected! Unchecking last selection...");
-            return;
+    // Toggle selection based on player name.
+    function handlePlayerSelection(playerName) {
+        if (selectedPlayers.has(playerName)) {
+            selectedPlayers.delete(playerName);
+            console.log(`🎯 Deselected player: ${playerName}`);
+        } else {
+            if (selectedPlayers.size >= 2) {
+                displayMessage("You must deselect one player before selecting another.");
+                console.log("❌ Too Many Players Selected! Cannot select additional player.");
+                return;
+            }
+            selectedPlayers.add(playerName);
+            console.log(`🎯 Selected player: ${playerName}`);
         }
-        if (!event.target.checked && selectedPlayers.size === 2 && players.length === 2) {
-            event.preventDefault();
-            event.target.checked = true;
-            alert("At least two players must remain selected.");
-            console.log("⚠️ Cannot deselect - Two players must always be selected.");
-            return;
-        }
-        event.target.checked
-            ? selectedPlayers.add(event.target.value)
-            : selectedPlayers.delete(event.target.value);
         persistSelectedPlayers();
-        updateCheckboxState();
+        renderPlayers();
     }
 
-    function updateCheckboxState() {
-        const selectedCheckboxes = document.querySelectorAll('input[name="selectedPlayer"]:checked');
-        console.log(`🔄 Updating Checkbox State | Selected Players: ${selectedCheckboxes.length}`);
-        document.querySelectorAll('.player-checkbox').forEach(checkbox => {
-            checkbox.disabled = false;
-        });
+    // Update the selection title based on the number of selected players.
+    function updateSelectionTitle() {
+        const titleEl = document.getElementById('selection-title');
+        if (selectedPlayers.size === 0) {
+            titleEl.textContent = "Select 2 Players";
+        } else if (selectedPlayers.size === 1) {
+            titleEl.textContent = "Select 1 More Player";
+        } else if (selectedPlayers.size === 2) {
+            titleEl.textContent = "Selected Players";
+        }
     }
 
     function deletePlayer(event) {
         const playerIndex = parseInt(event.target.getAttribute("data-index"));
         console.log(`🗑️ Deleting Player at Index: ${playerIndex}`);
         if (playerIndex >= 2) {
-            const selectedBeforeDelete = Array.from(document.querySelectorAll('input[name="selectedPlayer"]:checked'))
-                .map(cb => cb.value);
+            const selectedBeforeDelete = Array.from(document.querySelectorAll('.player-selection'))
+                .map(div => div.getAttribute('data-player-name'));
             players.splice(playerIndex, 1);
             savePlayers();
             renderPlayers();
-            document.querySelectorAll('input[name="selectedPlayer"]').forEach(cb => {
-                if (selectedBeforeDelete.includes(cb.value)) {
-                    cb.checked = true;
-                    selectedPlayers.add(cb.value);
-                }
-            });
-            if (players.length === 2 && players[0].name === "Alex" && players[1].name === "Martin") {
-                console.log("🔄 Only Alex & Martin remain. Auto-selecting them.");
-                selectedPlayers.clear();
-                selectedPlayers.add('Alex');
-                selectedPlayers.add('Martin');
-                document.querySelectorAll('input[name="selectedPlayer"]').forEach(cb => {
-                    cb.checked = selectedPlayers.has(cb.value);
-                });
-            }
+            selectedPlayers = new Set([...selectedPlayers].filter(name => selectedBeforeDelete.includes(name)));
             persistSelectedPlayers();
-            updateCheckboxState();
+            updateSelectionTitle();
         }
     }
 
     startGameBtn.addEventListener('click', () => {
         if (selectedPlayers.size !== 2) {
-            alert("Please select exactly two players.");
+            displayMessage("Please select exactly two players.");
             return;
         }
         persistSelectedPlayers();
         window.location.href = "index.html";
     });
 
-    // Initial render on page load.
+    // Initial render of players.
     renderPlayers();
 });

@@ -1,32 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select Players</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Players</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Select Players</h1>
+  <!-- Title updated to use an id for dynamic changes -->
+  <h1 id="selection-title">Select 2 Players</h1>
 
-    <div id="player-selection">
-        <div id="chosen-players">
-            <div id="uploaded-players"></div>
-        </div>
-		
+  <!-- Players grid -->
+  <div id="uploaded-players"></div>
 
-        <h2>Upload a New Player</h2>
-        <input type="file" id="playerUpload" accept="image/*">
-        <input type="text" id="playerName" placeholder="Enter player name">
-        <button id="uploadPlayerBtn">Upload</button>
-	<button id="takePhotoBtn">📷 Take Photo</button>
-        <br><br>
-        <button id="startGameBtn">Start Game</button>
-    </div>
+  <!-- Message container: will be hidden if empty -->
+  <div id="message-container"></div>
 
-    <script src="players.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script>
+  <!-- New Player Section -->
+  <!-- Toggle switch labeled "Add New Player" (off by default) -->
+<label for="newPlayerToggle">
+  <input type="checkbox" id="newPlayerToggle">
+  Add New Player
+</label>
+<div id="newPlayerContainer">
+  <div id="browse">
+	  <button type="button" id="browseButton">Browse</button>
+	  <label for="playerUpload" class="file-label">
+		Select a player image to upload.
+	  </label>
+	  <span id="fileNameDisplay" style="display:none;"></span>
+  </div>
+  <input type="file" id="playerUpload" accept="image/*" style="display:none;">
+  <input type="text" id="playerName" placeholder="Enter player name">
+  <button id="uploadPlayerBtn">Add Player</button>
+  <button id="takePhotoBtn">📷 Take Photo</button>
+</div>
+<br>
+<button id="startGameBtn">Start Game</button>
 
+  <script src="players.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script>
 </body>
 </html>

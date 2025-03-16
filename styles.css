@@ -5,7 +5,7 @@ body {
     background-color: #f2f2f2;
 	margin: 0; 
 	padding: 0;
-	    user-select: none;
+	    /* user-select: none; */
 }
 
 h1 {
@@ -13,6 +13,139 @@ h1 {
 	margin: 0;
 	padding: 60px 0 20px 0;
 }
+
+
+/* Grid layout for players */
+#uploaded-players {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+/* Message container */
+#message-container {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #ffc107;
+    background-color: #fff3cd;
+    color: #856404;
+    font-size: 16px;
+    border-radius: 4px;
+    display: none; /* Hidden by default */
+}
+
+/* Delete button in player card */
+.delete-player-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+/* Player card */
+.player-selection {
+    position: relative;
+    padding: 15px 15px 35px 15px; /* Extra bottom padding so name doesn't hide behind Selected tag */
+    border: 2px solid transparent;
+    transition: border 0.3s;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+/* Selected player card styling */
+.player-selection.selected {
+    border: 2px solid #007BFF;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+}
+
+/* Selected tag at the bottom of the card */
+.selected-tag {
+    width: 100%;
+    background-color: #007BFF;
+    color: #ffffff;
+    text-align: center;
+    padding: 5px 0;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+/* Style player names with increased font size and boldness */
+.player-name {
+    display: block;
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Button styling */
+button {
+    padding: 8px 16px;
+    border: none;
+    background-color: #007BFF;
+    color: #ffffff;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    margin: 5px 0;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Styling for text inputs and file inputs */
+input[type="text"],
+input[type="file"] {
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin: 5px 0;
+	width: 200px;
+}
+
+/* New Player Toggle & Container Styling */
+/* Style the toggle switch if desired; default browser style is used if not overridden */
+#newPlayerToggle {
+    margin: 10px 0;
+		margin: 40px 0 30px 0;
+	font-size: 25px;
+}
+
+
+/* New player container: vertical layout for file input, name input, and Add Player button */
+#newPlayerContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Ensure images are responsive */
+.player-img {
+  width: 100%;
+  height: auto;
+  max-width: 200px;
+}
+
+#newPlayerContainer button {
+	width: fit-content;
+}
+
+#browse {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+
 
 /* Game Board Layout */
 #board, .board {
@@ -116,7 +249,7 @@ h1 {
 }
 
 /* ✅ Restart Button */
-#restartBtn {
+#restartBtn, #startGameBtn {
     padding: 10px 20px;
     font-size: 26px;
     cursor: pointer;
@@ -125,10 +258,13 @@ h1 {
     border: none;
     border-radius: 5px;
     margin-top: 10px;
-    display: none;
 }
 
-#restartBtn:hover {
+#restartBtn {
+	display: none;
+}
+
+#restartBtn:hover, #startGameBtn:hover {
     background: #494949;
 }
 
