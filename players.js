@@ -224,8 +224,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+// Helper: Converts a PNG file (blob) to a JPEG blob using a canvas.
+function convertPNGtoJPG(file) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            // Fill the canvas with white to eliminate transparency issues.
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            // Convert canvas to JPEG blob with quality 90%
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject(new Error("PNG to JPEG conversion failed."));
+                }
+            }, "image/jpeg", 0.9);
+        };
+        img.onerror = (error) => reject(error);
+        img.src = URL.createObjectURL(file);
+    });
+}
+
 async function removeBackground(file) {
     console.log("🖼 Sending image to Remove.bg API...");
+
+    // If the file is PNG, convert it to JPEG first.
+    if (file.type === "image/png") {
+        console.log("🔄 Converting PNG to JPEG...");
+        try {
+            file = await convertPNGtoJPG(file);
+            console.log("✅ Conversion complete, new file type:", file.type);
+        } catch (error) {
+            console.error("❌ PNG to JPEG conversion failed:", error);
+            throw error;
+        }
+    }
+
     const removeBgApiKey = "DM2d2GWCiDxUexxSrvbsV5ZA"; // Your API key
     const formData = new FormData();
     formData.append("image_file", file);
