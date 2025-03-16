@@ -18,17 +18,32 @@
 
   <!-- New Player Section -->
 <div id="newPlayerContainer">
-  <div id="browse">
-	  <button type="button" id="browseButton">Browse</button>
-	  <label for="playerUpload" class="file-label">
-		Select a player image to upload.
-	  </label>
-	  <span id="fileNameDisplay" style="display:none;"></span>
+  <!-- Tab Controls (should have id "tabControls") -->
+  <div id="tabControls">
+    <button id="tabStorage" class="tab">From Storage</button>
+    <button id="tabCamera" class="tab">Take Photo</button>
   </div>
-  <input type="file" id="playerUpload" accept="image/*" style="display:none;">
+
+  <!-- Tab Content for Storage -->
+  <div id="tabContentStorage" class="tab-content">
+    <div id="browse">
+      <button type="button" id="browseButton">Browse</button>
+      <label id="fileLabel" for="playerUpload" class="file-label">
+        Select a player image to upload.
+      </label>
+      <span id="fileNameDisplay" style="display:none;"></span>
+    </div>
+    <input type="file" id="playerUpload" accept="image/*" style="display:none;">
+  </div>
+
+  <!-- Tab Content for Camera (hidden by default) -->
+  <div id="tabContentCamera" class="tab-content" style="display:none;">
+    <button id="takePhotoBtn">📷 Take Photo</button>
+  </div>
+
+  <!-- Common fields for both modes -->
   <input type="text" id="playerName" placeholder="Enter player name">
   <button id="uploadPlayerBtn">Add Player</button>
-  <button id="takePhotoBtn">📷 Take Photo</button>
 </div>
 <br>
 <button id="startGameBtn">Start Game</button>

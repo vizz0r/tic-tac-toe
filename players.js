@@ -234,40 +234,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Tab switching for new player form (desktop only)
-    const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
-    if (!isMobileDevice) {
-        const tabStorage = document.getElementById('tabStorage');
-        const tabCamera = document.getElementById('tabCamera');
-        const tabContentStorage = document.getElementById('tabContentStorage');
-        const tabContentCamera = document.getElementById('tabContentCamera');
-        if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
-            console.log("Desktop detected: Setting up tabs for new player form.");
-            // Set default active tab: Storage
-            tabStorage.classList.add('active');
-            tabContentStorage.style.display = 'block';
-            tabCamera.classList.remove('active');
-            tabContentCamera.style.display = 'none';
-            tabStorage.addEventListener('click', () => {
-                console.log("Storage tab clicked.");
-                tabStorage.classList.add('active');
-                tabCamera.classList.remove('active');
-                tabContentStorage.style.display = 'block';
-                tabContentCamera.style.display = 'none';
-            });
-            tabCamera.addEventListener('click', () => {
-                console.log("Camera tab clicked.");
-                tabCamera.classList.add('active');
-                tabStorage.classList.remove('active');
-                tabContentCamera.style.display = 'block';
-                tabContentStorage.style.display = 'none';
-            });
-        } else {
-            console.log("Tab elements missing; please check your HTML.");
-        }
-    } else {
-        console.log("Mobile device detected: Tabs will not be shown; defaulting to storage mode.");
-    }
+// Determine if the device is mobile.
+const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+console.log("isMobileDevice:", isMobileDevice);
+
+// Tab switching for new player form (mobile only)
+if (isMobileDevice) {
+  const tabStorage = document.getElementById('tabStorage');
+  const tabCamera = document.getElementById('tabCamera');
+  const tabContentStorage = document.getElementById('tabContentStorage');
+  const tabContentCamera = document.getElementById('tabContentCamera');
+  if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
+    console.log("Mobile device detected: Setting up tabs for new player form.");
+    // Set default active tab: Storage
+    tabStorage.classList.add('active');
+    tabContentStorage.style.display = 'block';
+    tabCamera.classList.remove('active');
+    tabContentCamera.style.display = 'none';
+    
+    tabStorage.addEventListener('click', () => {
+      console.log("Mobile: Storage tab clicked.");
+      tabStorage.classList.add('active');
+      tabCamera.classList.remove('active');
+      tabContentStorage.style.display = 'block';
+      tabContentCamera.style.display = 'none';
+    });
+    
+    tabCamera.addEventListener('click', () => {
+      console.log("Mobile: Camera tab clicked.");
+      tabCamera.classList.add('active');
+      tabStorage.classList.remove('active');
+      tabContentCamera.style.display = 'block';
+      tabContentStorage.style.display = 'none';
+    });
+  } else {
+    console.log("Mobile: Tab elements missing in HTML.");
+  }
+} else {
+  console.log("Desktop device detected: Hiding tab controls, defaulting to storage mode.");
+  // Optionally hide tab controls on desktop.
+  const tabControls = document.getElementById('tabControls');
+  if (tabControls) {
+    tabControls.style.display = 'none';
+  }
+  // Also, ensure that the storage mode is visible by default:
+  const tabContentStorage = document.getElementById('tabContentStorage');
+  if (tabContentStorage) {
+    tabContentStorage.style.display = 'block';
+  }
+}
+
 
     // Create the message container below the players grid if it doesn't exist.
     let messageContainer = document.getElementById('message-container');
