@@ -36,7 +36,7 @@
         messageDiv.textContent = message;
         debugLog.appendChild(messageDiv);
     };
-})();  */
+})(); */
 
 //
 // Global Helper Functions
