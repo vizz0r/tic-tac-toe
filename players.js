@@ -435,104 +435,104 @@ if (isMobileDevice) {
     });
 
     // Handle New Player Upload (Add Player) with separate validation.
-    uploadPlayerBtn.addEventListener('click', async () => {
-        uploadPlayerBtn.textContent = "Adding Player...";
-        uploadPlayerBtn.disabled = true;
-        
-        let file;
-        // Determine which tab is active (desktop only); on mobile, default to storage.
-        if (!isMobileDevice) {
-            const tabStorage = document.getElementById('tabStorage');
-            const tabCamera = document.getElementById('tabCamera');
-            if (tabStorage && tabStorage.classList.contains('active')) {
-                file = playerUpload.files[0] || window.selectedFile;
-                console.log("Desktop: Storage tab active. File:", file);
-            } else if (tabCamera && tabCamera.classList.contains('active')) {
-                file = window.capturedFile;
-                console.log("Desktop: Camera tab active. File:", file);
-            } else {
-                file = playerUpload.files[0] || window.selectedFile || window.capturedFile;
-                console.log("Desktop: No active tab found; using fallback file:", file);
-            }
+uploadPlayerBtn.addEventListener('click', async () => {
+    uploadPlayerBtn.textContent = "Uploading Player...";
+    uploadPlayerBtn.disabled = true;
+    
+    let file;
+    // Determine which tab is active (desktop only); on mobile, default to storage.
+    if (!isMobileDevice) {
+        const tabStorage = document.getElementById('tabStorage');
+        const tabCamera = document.getElementById('tabCamera');
+        if (tabStorage && tabStorage.classList.contains('active')) {
+            file = playerUpload.files[0] || window.selectedFile;
+            console.log("Desktop: Storage tab active. File:", file);
+        } else if (tabCamera && tabCamera.classList.contains('active')) {
+            file = window.capturedFile;
+            console.log("Desktop: Camera tab active. File:", file);
         } else {
-            // On mobile, use storage method.
             file = playerUpload.files[0] || window.selectedFile || window.capturedFile;
-            console.log("Mobile: Using storage file:", file);
+            console.log("Desktop: No active tab; using fallback file:", file);
         }
-        
-        const playerName = playerNameInput.value.trim();
-        console.log("Player name entered:", playerName);
-        
-        // Validate file input.
-        if (!file) {
-            const errorMessage = isMobileDevice 
-                ? "No image selected from gallery or camera." 
-                : "No image selected for upload.";
-            displayMessage(errorMessage);
-            console.log("⚠️ Upload Failed - No file selected.");
-            uploadPlayerBtn.textContent = "Add Player";
-            uploadPlayerBtn.disabled = false;
-            return;
+    } else {
+        // On mobile, use storage method.
+        file = playerUpload.files[0] || window.selectedFile || window.capturedFile;
+        console.log("Mobile: Using storage file:", file);
+    }
+    
+    const playerName = playerNameInput.value.trim();
+    console.log("Player name entered:", playerName);
+    
+    // Validate file input.
+    if (!file) {
+        const errorMessage = isMobileDevice 
+            ? "No image selected from gallery or camera." 
+            : "No image selected for upload.";
+        displayMessage(errorMessage);
+        console.log("⚠️ Upload Failed - No file selected.");
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+        return;
+    }
+    
+    // Validate player name input.
+    if (!playerName) {
+        displayMessage("Please enter a player name.");
+        console.log("⚠️ Upload Failed - Missing name.");
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+        return;
+    }
+    
+    // Check for duplicate names.
+    if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
+        displayMessage(`A player named "${playerName}" already exists.`);
+        console.log(`❌ Duplicate name detected: ${playerName}`);
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+        return;
+    }
+    
+    try {
+        console.log("✅ Name is unique. Proceeding with image processing...");
+        console.log("📸 Processing image for:", playerName);
+        console.log("🛠 File Details:", file);
+        console.log("🎨 Removing Background...");
+        const processedBlob = await removeBackground(file);
+        console.log("✅ Background Removed! Blob:", processedBlob);
+        console.log("🔵 Applying Round Mask...");
+        const finalImage = await applyRoundMask(processedBlob);
+        console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
+        players.push({ name: playerName, image: finalImage });
+        console.log(`✅ New Player Added: ${playerName}`);
+        console.log("🛠 Players After Processing:", players.map(p => p.name));
+        savePlayers();
+        renderPlayers();
+        console.log("📂 Image saved to localStorage.");
+        // Clear inputs and reset stored files.
+        playerUpload.value = "";
+        playerNameInput.value = "";
+        window.selectedFile = null;
+        window.capturedFile = null;
+        let captureStatus = document.getElementById("captureStatus");
+        if (captureStatus) {
+            captureStatus.textContent = "";
         }
-        
-        // Validate player name input.
-        if (!playerName) {
-            displayMessage("Please enter a player name.");
-            console.log("⚠️ Upload Failed - Missing name.");
-            uploadPlayerBtn.textContent = "Add Player";
-            uploadPlayerBtn.disabled = false;
-            return;
+        // Reset the file input display: show the label and hide the file name display.
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const fileLabel = document.getElementById('fileLabel');
+        if (fileNameDisplay && fileLabel) {
+            fileNameDisplay.textContent = "";
+            fileNameDisplay.style.display = "none";
+            fileLabel.style.display = "inline";
         }
-        
-        // Check for duplicate names.
-        if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
-            displayMessage(`A player named "${playerName}" already exists.`);
-            console.log(`❌ Duplicate name detected: ${playerName}`);
-            uploadPlayerBtn.textContent = "Add Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-        
-        try {
-            console.log("✅ Name is unique. Proceeding with image processing...");
-            console.log("📸 Processing image for:", playerName);
-            console.log("🛠 File Details:", file);
-            console.log("🎨 Removing Background...");
-            const processedBlob = await removeBackground(file);
-            console.log("✅ Background Removed! Blob:", processedBlob);
-            console.log("🔵 Applying Round Mask...");
-            const finalImage = await applyRoundMask(processedBlob);
-            console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
-            players.push({ name: playerName, image: finalImage });
-            console.log(`✅ New Player Added: ${playerName}`);
-            console.log("🛠 Players After Processing:", players.map(p => p.name));
-            savePlayers();
-            renderPlayers();
-            console.log("📂 Image saved to localStorage.");
-            // Clear inputs and reset stored files.
-            playerUpload.value = "";
-            playerNameInput.value = "";
-            window.selectedFile = null;
-            window.capturedFile = null;
-            let captureStatus = document.getElementById("captureStatus");
-            if (captureStatus) {
-                captureStatus.textContent = "";
-            }
-            // Reset the file input display: show the label and hide the file name display.
-            const fileNameDisplay = document.getElementById('fileNameDisplay');
-            const fileLabel = document.getElementById('fileLabel');
-            if (fileNameDisplay && fileLabel) {
-                fileNameDisplay.textContent = "";
-                fileNameDisplay.style.display = "none";
-                fileLabel.style.display = "inline";
-            }
-        } catch (error) {
-            console.error("❌ Image Processing Failed:", error);
-        } finally {
-            uploadPlayerBtn.textContent = "Add Player";
-            uploadPlayerBtn.disabled = false;
-        }
-    });
+    } catch (error) {
+        console.error("❌ Image Processing Failed:", error);
+    } finally {
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+    }
+});
 
     function savePlayers() {
         localStorage.setItem('players', JSON.stringify(players));
