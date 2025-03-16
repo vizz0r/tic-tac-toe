@@ -220,38 +220,54 @@ async function applyRoundMask(imageBlob) {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log("📌 Page Loaded - Initializing Players");
-	window.addEventListener('scroll', function() {
-	  const selectionTitle = document.getElementById('selection-title');
-	  if (selectionTitle) {
-		const rect = selectionTitle.getBoundingClientRect();
-		if (rect.top <= 0) {
-		  selectionTitle.classList.add('drop-shadow');
-		} else {
-		  selectionTitle.classList.remove('drop-shadow');
-		}
-	  }
-	});
-	
-	const storageTab = document.getElementById('tabStorage');
-	const cameraTab = document.getElementById('tabCamera');
-	const tabContentStorage = document.getElementById('tabContentStorage');
-	const tabContentCamera = document.getElementById('tabContentCamera');
 
-	if(storageTab && cameraTab && tabContentStorage && tabContentCamera) {
-	  storageTab.addEventListener('click', () => {
-		storageTab.classList.add('active');
-		cameraTab.classList.remove('active');
-		tabContentStorage.style.display = 'block';
-		tabContentCamera.style.display = 'none';
-	  });
+    // Sticky title with drop shadow on scroll.
+    window.addEventListener('scroll', function() {
+        const selectionTitle = document.getElementById('selection-title');
+        if (selectionTitle) {
+            const rect = selectionTitle.getBoundingClientRect();
+            if (rect.top <= 0) {
+                selectionTitle.classList.add('drop-shadow');
+            } else {
+                selectionTitle.classList.remove('drop-shadow');
+            }
+        }
+    });
 
-	  cameraTab.addEventListener('click', () => {
-		cameraTab.classList.add('active');
-		storageTab.classList.remove('active');
-		tabContentCamera.style.display = 'block';
-		tabContentStorage.style.display = 'none';
-	  });
-	}
+    // Tab switching for new player form (desktop only)
+    const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+    if (!isMobileDevice) {
+        const tabStorage = document.getElementById('tabStorage');
+        const tabCamera = document.getElementById('tabCamera');
+        const tabContentStorage = document.getElementById('tabContentStorage');
+        const tabContentCamera = document.getElementById('tabContentCamera');
+        if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
+            console.log("Desktop detected: Setting up tabs for new player form.");
+            // Set default active tab: Storage
+            tabStorage.classList.add('active');
+            tabContentStorage.style.display = 'block';
+            tabCamera.classList.remove('active');
+            tabContentCamera.style.display = 'none';
+            tabStorage.addEventListener('click', () => {
+                console.log("Storage tab clicked.");
+                tabStorage.classList.add('active');
+                tabCamera.classList.remove('active');
+                tabContentStorage.style.display = 'block';
+                tabContentCamera.style.display = 'none';
+            });
+            tabCamera.addEventListener('click', () => {
+                console.log("Camera tab clicked.");
+                tabCamera.classList.add('active');
+                tabStorage.classList.remove('active');
+                tabContentCamera.style.display = 'block';
+                tabContentStorage.style.display = 'none';
+            });
+        } else {
+            console.log("Tab elements missing; please check your HTML.");
+        }
+    } else {
+        console.log("Mobile device detected: Tabs will not be shown; defaulting to storage mode.");
+    }
 
     // Create the message container below the players grid if it doesn't exist.
     let messageContainer = document.getElementById('message-container');
@@ -264,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (messageContainer.innerHTML.trim() === "") {
         messageContainer.style.display = "none";
     }
-    // Helper function to display messages (replacing alerts).
+    // Helper function to display messages.
     function displayMessage(text) {
         messageContainer.style.display = "block";
         messageContainer.innerHTML = `<span class="warning-icon">⚠️</span> ${text}`;
@@ -274,25 +290,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 5000);
     }
 
-    // NEW PLAYER TOGGLE & CONTAINER SETUP
-    const newPlayerToggle = document.getElementById('newPlayerToggle');
-    const newPlayerContainer = document.getElementById('newPlayerContainer');
-    if (newPlayerToggle && newPlayerContainer) {
-        newPlayerToggle.checked = false; // Off by default.
-        newPlayerContainer.style.display = "none";
-        newPlayerToggle.addEventListener('change', () => {
-            if (newPlayerToggle.checked) {
-                newPlayerContainer.style.display = "flex";
-                newPlayerContainer.style.flexDirection = "column";
-            } else {
-                newPlayerContainer.style.display = "none";
-            }
-        });
-    }
+    // Remove any separate new player toggle markup if present.
+    // (We're using the Add New Player card in the grid instead.)
 
     // Retrieve players grid and new player section elements.
     const uploadedPlayersContainer = document.getElementById('uploaded-players');
-    // New player section elements:
+    // New player form elements (inside newPlayerContainer)
+    const newPlayerContainer = document.getElementById('newPlayerContainer');
+    // For the new player form, we assume the following IDs exist in the HTML:
+    // - Tab controls: tabStorage, tabCamera (desktop only)
+    // - Tab contents: tabContentStorage, tabContentCamera
+    // - File input elements: fileLabel (inside #browse) and fileNameDisplay
     const browseButton = document.getElementById('browseButton');
     const playerUpload = document.getElementById('playerUpload'); // Hidden file input inside newPlayerContainer
     const playerNameInput = document.getElementById('playerName');
@@ -302,23 +310,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Attach custom file input event listener for the "Browse" button.
     if (browseButton && playerUpload) {
-      browseButton.addEventListener('click', () => {
-        playerUpload.click();
-      });
+        browseButton.addEventListener('click', () => {
+            console.log("Browse button clicked.");
+            playerUpload.click();
+        });
     }
 
-    // Set file input to accept image files.
     if (playerUpload) {
         playerUpload.setAttribute("accept", "image/*");
     }
-    // When a file is selected, swap the file label with the file name display.
     playerUpload.addEventListener('change', () => {
-        // Get the fileNameDisplay element and the file label from within the "browse" container.
         const fileNameDisplay = document.getElementById('fileNameDisplay');
         const fileLabel = document.querySelector('#browse .file-label');
         if (playerUpload.files && playerUpload.files[0]) {
             window.selectedFile = playerUpload.files[0];
-            console.log("📁 File selected from storage:", window.selectedFile.name);
+            console.log("📁 File selected:", window.selectedFile.name);
             if (fileNameDisplay && fileLabel) {
                 fileNameDisplay.textContent = window.selectedFile.name;
                 fileNameDisplay.style.display = "inline-block";
@@ -334,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Detect mobile device and camera.
-    const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
     const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
     takePhotoBtn.style.display = (isMobileDevice && hasCamera) ? "inline-block" : "none";
 
@@ -364,28 +369,27 @@ document.addEventListener('DOMContentLoaded', () => {
     persistSelectedPlayers();
     console.log("✅ Players selected after load:", Array.from(selectedPlayers));
 
-    // Event delegation for players grid: clicking a card toggles selection; delete button handles deletion.
-	uploadedPlayersContainer.addEventListener('click', (event) => {
-		if (event.target.closest('.delete-player-btn')) {
-			deletePlayer(event);
-			return;
-		}
-		const playerDiv = event.target.closest('.player-selection');
-		if (playerDiv) {
-			if (playerDiv.classList.contains('add-new')) {
-				const newPlayerContainer = document.getElementById('newPlayerContainer');
-				// Only set it to visible if it's currently hidden
-				if (newPlayerContainer && (newPlayerContainer.style.display === "none" || newPlayerContainer.style.display === "")) {
-					newPlayerContainer.style.display = "inline-flex";
-					newPlayerContainer.style.flexDirection = "column";
-				}
-			} else {
-				const playerName = playerDiv.getAttribute('data-player-name');
-				handlePlayerSelection(playerName);
-			}
-		}
-	});
-
+    // Event delegation for players grid.
+    uploadedPlayersContainer.addEventListener('click', (event) => {
+        if (event.target.closest('.delete-player-btn')) {
+            deletePlayer(event);
+            return;
+        }
+        const playerDiv = event.target.closest('.player-selection');
+        if (playerDiv) {
+            // If this is the "Add New Player" card, show the new player form (if not already visible).
+            if (playerDiv.classList.contains('add-new')) {
+                if (newPlayerContainer && (newPlayerContainer.style.display === "none" || newPlayerContainer.style.display === "")) {
+                    newPlayerContainer.style.display = "inline-flex";
+                    newPlayerContainer.style.flexDirection = "column";
+                    console.log("New player form displayed.");
+                }
+            } else {
+                const playerName = playerDiv.getAttribute('data-player-name');
+                handlePlayerSelection(playerName);
+            }
+        }
+    });
 
     // Mobile: Handle Take Photo Button.
     takePhotoBtn.addEventListener("click", () => {
@@ -415,117 +419,134 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Handle New Player Upload (Add Player) with separate validation.
-uploadPlayerBtn.addEventListener('click', async () => {
-    uploadPlayerBtn.textContent = "Adding Player...";
-    uploadPlayerBtn.disabled = true;
-    
-    // For mobile (and if no tabs are used), we use the file from the storage input.
-    // (This code assumes that on desktop you also use this same input, since tabs are removed.)
-    const file = playerUpload.files[0] || window.selectedFile || window.capturedFile;
-    const playerName = playerNameInput.value.trim();
-    
-    // Validate file input separately.
-    if (!file) {
-        const errorMessage = isMobileDevice 
-            ? "No image selected from gallery or camera." 
-            : "No image selected for upload.";
-        displayMessage(errorMessage);
-        console.log("⚠️ Upload Failed - No file selected.");
-        uploadPlayerBtn.textContent = "Add Player";
-        uploadPlayerBtn.disabled = false;
-        return;
-    }
-    
-    // Validate player name input separately.
-    if (!playerName) {
-        displayMessage("Please enter a player name.");
-        console.log("⚠️ Upload Failed - Missing name.");
-        uploadPlayerBtn.textContent = "Add Player";
-        uploadPlayerBtn.disabled = false;
-        return;
-    }
-    
-    // Check for duplicate player names.
-    if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
-        displayMessage(`A player named "${playerName}" already exists.`);
-        console.log(`❌ Duplicate name detected: ${playerName}`);
-        uploadPlayerBtn.textContent = "Add Player";
-        uploadPlayerBtn.disabled = false;
-        return;
-    }
-    
-    try {
-        console.log("✅ Name is unique. Proceeding with image processing...");
-        console.log("📸 Attempting to process image for:", playerName);
-        console.log("🛠 File Details:", file);
-        console.log("🎨 Removing Background...");
-        const processedBlob = await removeBackground(file);
-        console.log("✅ Background Removed! Blob:", processedBlob);
-        console.log("🔵 Applying Round Mask...");
-        const finalImage = await applyRoundMask(processedBlob);
-        console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
-        players.push({ name: playerName, image: finalImage });
-        console.log(`✅ New Player Added: ${playerName}`);
-        console.log("🛠 Players After Processing:", players.map(p => p.name));
-        savePlayers();
-        renderPlayers();
-        console.log("📂 Image saved to localStorage.");
-        // Clear inputs and reset stored files.
-        playerUpload.value = "";
-        playerNameInput.value = "";
-        window.selectedFile = null;
-        window.capturedFile = null;
-        let captureStatus = document.getElementById("captureStatus");
-        if (captureStatus) {
-            captureStatus.textContent = "";
+    uploadPlayerBtn.addEventListener('click', async () => {
+        uploadPlayerBtn.textContent = "Adding Player...";
+        uploadPlayerBtn.disabled = true;
+        
+        let file;
+        // Determine which tab is active (desktop only); on mobile, default to storage.
+        if (!isMobileDevice) {
+            const tabStorage = document.getElementById('tabStorage');
+            const tabCamera = document.getElementById('tabCamera');
+            if (tabStorage && tabStorage.classList.contains('active')) {
+                file = playerUpload.files[0] || window.selectedFile;
+                console.log("Desktop: Storage tab active. File:", file);
+            } else if (tabCamera && tabCamera.classList.contains('active')) {
+                file = window.capturedFile;
+                console.log("Desktop: Camera tab active. File:", file);
+            } else {
+                file = playerUpload.files[0] || window.selectedFile || window.capturedFile;
+                console.log("Desktop: No active tab found; using fallback file:", file);
+            }
+        } else {
+            // On mobile, use storage method.
+            file = playerUpload.files[0] || window.selectedFile || window.capturedFile;
+            console.log("Mobile: Using storage file:", file);
         }
-        // Reset the file input display: show the label and hide the file name display.
-        const fileNameDisplay = document.getElementById('fileNameDisplay');
-        const fileLabel = document.querySelector('#browse .file-label');
-        if (fileNameDisplay && fileLabel) {
-            fileNameDisplay.textContent = "";
-            fileNameDisplay.style.display = "none";
-            fileLabel.style.display = "inline";
+        
+        const playerName = playerNameInput.value.trim();
+        console.log("Player name entered:", playerName);
+        
+        // Validate file input.
+        if (!file) {
+            const errorMessage = isMobileDevice 
+                ? "No image selected from gallery or camera." 
+                : "No image selected for upload.";
+            displayMessage(errorMessage);
+            console.log("⚠️ Upload Failed - No file selected.");
+            uploadPlayerBtn.textContent = "Add Player";
+            uploadPlayerBtn.disabled = false;
+            return;
         }
-    } catch (error) {
-        console.error("❌ Image Processing Failed:", error);
-    } finally {
-        uploadPlayerBtn.textContent = "Add Player";
-        uploadPlayerBtn.disabled = false;
-    }
-});
-
-
+        
+        // Validate player name input.
+        if (!playerName) {
+            displayMessage("Please enter a player name.");
+            console.log("⚠️ Upload Failed - Missing name.");
+            uploadPlayerBtn.textContent = "Add Player";
+            uploadPlayerBtn.disabled = false;
+            return;
+        }
+        
+        // Check for duplicate names.
+        if (players.some(player => player.name.toLowerCase() === playerName.toLowerCase())) {
+            displayMessage(`A player named "${playerName}" already exists.`);
+            console.log(`❌ Duplicate name detected: ${playerName}`);
+            uploadPlayerBtn.textContent = "Add Player";
+            uploadPlayerBtn.disabled = false;
+            return;
+        }
+        
+        try {
+            console.log("✅ Name is unique. Proceeding with image processing...");
+            console.log("📸 Processing image for:", playerName);
+            console.log("🛠 File Details:", file);
+            console.log("🎨 Removing Background...");
+            const processedBlob = await removeBackground(file);
+            console.log("✅ Background Removed! Blob:", processedBlob);
+            console.log("🔵 Applying Round Mask...");
+            const finalImage = await applyRoundMask(processedBlob);
+            console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
+            players.push({ name: playerName, image: finalImage });
+            console.log(`✅ New Player Added: ${playerName}`);
+            console.log("🛠 Players After Processing:", players.map(p => p.name));
+            savePlayers();
+            renderPlayers();
+            console.log("📂 Image saved to localStorage.");
+            // Clear inputs and reset stored files.
+            playerUpload.value = "";
+            playerNameInput.value = "";
+            window.selectedFile = null;
+            window.capturedFile = null;
+            let captureStatus = document.getElementById("captureStatus");
+            if (captureStatus) {
+                captureStatus.textContent = "";
+            }
+            // Reset the file input display: show the label and hide the file name display.
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            const fileLabel = document.getElementById('fileLabel');
+            if (fileNameDisplay && fileLabel) {
+                fileNameDisplay.textContent = "";
+                fileNameDisplay.style.display = "none";
+                fileLabel.style.display = "inline";
+            }
+        } catch (error) {
+            console.error("❌ Image Processing Failed:", error);
+        } finally {
+            uploadPlayerBtn.textContent = "Add Player";
+            uploadPlayerBtn.disabled = false;
+        }
+    });
 
     function savePlayers() {
         localStorage.setItem('players', JSON.stringify(players));
     }
 
     // Render players (grid cards). Each card is clickable, and a "Selected" tag appears if selected.
-function renderPlayers() {
-    console.log("🔄 Rendering Players...");
-    uploadedPlayersContainer.innerHTML = "";
-    players.forEach((p, index) => {
-        const isSelected = selectedPlayers.has(p.name);
+    function renderPlayers() {
+        console.log("🔄 Rendering Players...");
+        uploadedPlayersContainer.innerHTML = "";
+        players.forEach((p, index) => {
+            const isSelected = selectedPlayers.has(p.name);
+            uploadedPlayersContainer.innerHTML += `
+                <div class="player-selection ${isSelected ? 'selected' : ''}" data-player-name="${p.name}">
+                    ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
+                    <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:214px;">
+                    <span class="player-name">${p.name}</span>
+                    ${isSelected ? `<div class="selected-tag">Selected</div>` : ''}
+                </div>
+            `;
+            console.log(`✅ Player Rendered: ${p.name} (Selected: ${isSelected})`);
+        });
+        // Append the "Add New Player" card (which has no delete button)
         uploadedPlayersContainer.innerHTML += `
-            <div class="player-selection ${isSelected ? 'selected' : ''}" data-player-name="${p.name}">
-                ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
-                <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:214px;">
-                <span class="player-name">${p.name}</span>
-                ${isSelected ? `<div class="selected-tag">Selected</div>` : ''}
+            <div class="player-selection add-new" data-action="add-new">
+                <span class="plus-icon">+</span>
+                <span class="player-name">Add New Player</span>
             </div>
         `;
-        console.log(`✅ Player Rendered: ${p.name} (Selected: ${isSelected})`);
-    });
-    // Append the "Add New Player" card
-    uploadedPlayersContainer.innerHTML += `
-        <div class="player-selection add-new" data-action="add-new">
-            <span class="plus-icon">+</span>
-            <span class="player-name">Add New Player</span>
-        </div>
-    `;
-    updateSelectionTitle();
-}
+        updateSelectionTitle();
+    }
 
     // Toggle selection based on player name.
     function handlePlayerSelection(playerName) {
