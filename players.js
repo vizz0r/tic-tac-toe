@@ -1,4 +1,4 @@
-(function() {
+/* (function() {
     // Create a debug log container fixed at the top with a semitransparent background.
     const debugLog = document.createElement("div");
     debugLog.id = "debugLog";
@@ -36,7 +36,7 @@
         messageDiv.textContent = message;
         debugLog.appendChild(messageDiv);
     };
-})();
+})(); */
 
 //
 // Global Helper Functions
@@ -470,45 +470,6 @@ playerUpload.addEventListener('change', () => {
             }
         }
     });
-
-// Modify the Take Photo button behavior
-const cameraTab = document.getElementById("tabCamera");
-const storageTab = document.getElementById("tabStorage");
-const tabContentCamera = document.getElementById("tabContentCamera");
-const tabContentStorage = document.getElementById("tabContentStorage");
-
-// Ensure Take Photo tab immediately triggers the camera
-cameraTab.addEventListener("click", () => {
-    cameraTab.classList.add("active");
-    storageTab.classList.remove("active");
-    tabContentCamera.style.display = "block";
-    tabContentStorage.style.display = "none";
-
-    console.log("📷 Automatically opening the camera...");
-
-    // Auto-trigger the camera
-    const captureInput = document.createElement("input");
-    captureInput.type = "file";
-    captureInput.accept = "image/*";
-    captureInput.setAttribute("capture", "environment");
-    captureInput.style.display = "none";
-    document.body.appendChild(captureInput);
-
-	captureInput.addEventListener("change", () => {
-			const file = captureInput.files[0];
-			if (file) {
-				const imageSrc = URL.createObjectURL(file);
-				updateUIAfterImageSelection(imageSrc);
-				window.capturedFile = file;
-			} else {
-				console.log("❌ No photo taken. Switching back to Browse Mode.");
-				resetTabToBrowse();
-			}
-			document.body.removeChild(captureInput);
-		});
-
-    captureInput.click();
-});
 
 
 
