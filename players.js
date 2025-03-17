@@ -1,4 +1,4 @@
-(function() {
+/* (function() {
     // Create a debug log container fixed at the top with a semitransparent background.
     const debugLog = document.createElement("div");
     debugLog.id = "debugLog";
@@ -36,7 +36,7 @@
         messageDiv.textContent = message;
         debugLog.appendChild(messageDiv);
     };
-})(); 
+})(); */
 
 //
 // Global Helper Functions
@@ -547,8 +547,8 @@ uploadPlayerBtn.addEventListener('click', async () => {
             uploadedPlayersContainer.innerHTML += `
                 <div class="player-selection ${isSelected ? 'selected' : ''}" data-player-name="${p.name}">
                     ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
-                    <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:214px;">
                     <span class="player-name">${p.name}</span>
+					<img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:150px;">
                     ${isSelected ? `<div class="selected-tag">Selected</div>` : ''}
                 </div>
             `;
