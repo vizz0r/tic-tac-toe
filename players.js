@@ -244,7 +244,7 @@ console.log("isMobileDevice:", isMobileDevice);
 
 // Function to reset the tab to "Browse" mode after a player is added or if camera is exited
 function resetTabToBrowse() {
-    console.log("🔄 Resetting to Browse Mode");
+    console.log("🔄 Switching back to 'Browse' mode...");
 
     const tabStorage = document.getElementById('tabStorage');
     const tabCamera = document.getElementById('tabCamera');
@@ -261,8 +261,6 @@ function resetTabToBrowse() {
 
     tabContentStorage.style.display = "block";
     tabContentCamera.style.display = "none";
-
-    console.log("✅ Successfully switched to 'Browse' tab.");
 }
 
 // Tab switching for new player form (mobile only)
@@ -311,8 +309,17 @@ if (isMobileDevice) {
                 window.removeEventListener("focus", detectCameraClosure); // ✅ Cleanup listener
             };
 
-            // Add a focus listener to detect when the user returns to the page (after closing camera)
-            window.addEventListener("focus", detectCameraClosure);
+            // ✅ Handle Desktop vs. Mobile differently
+            if (!isMobileDevice) {
+                // Desktop: Detect when the file picker is **closed** without a selection
+                captureInput.addEventListener("click", () => {
+                    console.log("🖼️ Desktop: File picker opened.");
+                    window.addEventListener("focus", detectCameraClosure);
+                });
+            } else {
+                // Mobile: Detect when the user exits the camera
+                window.addEventListener("focus", detectCameraClosure);
+            }
 
             captureInput.addEventListener("change", () => {
                 const file = captureInput.files[0];
@@ -324,12 +331,13 @@ if (isMobileDevice) {
                     cameraOpen = false; // ✅ Mark camera as "photo taken"
                     photoTaken = true; // ✅ Photo was actually taken
 
-                    // ✅ Immediately remove camera closure detection
+                    // ✅ Immediately remove camera closure detection (Prevents false resets)
                     window.removeEventListener("focus", detectCameraClosure);
 
-                    // ✅ Reset the tab to Browse mode after attaching the photo
-                    console.log("🔄 Resetting tab to Browse after successful photo.");
-                    setTimeout(resetTabToBrowse, 500); // Short delay to ensure UI updates correctly
+                    // ✅ Reset the tab to Browse mode after attaching the photo **ONLY ONCE**
+                    if (photoTaken) {
+                        resetTabToBrowse(); // ✅ Call reset only once
+                    }
                 } else {
                     console.log("❌ No photo taken. Camera closed. Resetting tab.");
                     resetTabToBrowse();
@@ -355,32 +363,6 @@ if (isMobileDevice) {
         tabContentStorage.style.display = 'block';
     }
 }
-
-
-	
-	// Function to reset the tab to "Browse" mode after a player is added or if camera is exited
-	function resetTabToBrowse() {
-		console.log("🔄 Resetting to Browse Mode");
-		
-		// Ensure the elements exist before modifying them
-		const tabStorage = document.getElementById('tabStorage');
-		const tabCamera = document.getElementById('tabCamera');
-		const tabContentStorage = document.getElementById('tabContentStorage');
-		const tabContentCamera = document.getElementById('tabContentCamera');
-
-		if (!tabStorage || !tabCamera || !tabContentStorage || !tabContentCamera) {
-			console.error("🚨 Error: One or more tab elements are missing in resetTabToBrowse()");
-			return;
-		}
-		
-		tabStorage.classList.add("active");
-		tabCamera.classList.remove("active");
-
-		tabContentStorage.style.display = "block";
-		tabContentCamera.style.display = "none";
-		
-		console.log("✅ Successfully switched to 'Browse' tab.");
-	}
 
     // Create the message container below the players grid if it doesn't exist.
     let messageContainer = document.getElementById('message-container');
