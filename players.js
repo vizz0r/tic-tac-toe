@@ -134,9 +134,9 @@ async function removeBackground(file) {
     return response.blob();
 }
 
-// Apply a round mask to the image using FaceMesh.
-async function applyRoundMask(imageBlob) {
-    console.log("🎭 Applying round mask to image...");
+// Crop image to a square based on FaceMesh detection (zoomed out by 30%)
+async function cropFaceToSquare(imageBlob) {
+    console.log("📸 Cropping face to square with zoom-out...");
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = async () => {
@@ -147,6 +147,7 @@ async function applyRoundMask(imageBlob) {
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(img, 0, 0);
             console.log("🖼 Image drawn on canvas. Proceeding with FaceMesh...");
+
             try {
                 if (!window.faceMeshModel) {
                     console.log("🤖 Loading FaceMesh model...");
@@ -154,22 +155,16 @@ async function applyRoundMask(imageBlob) {
                     console.log("✅ FaceMesh Model Loaded.");
                 }
                 console.log("🔍 Calling estimateFaces on canvas...");
-                const faceDetectionTimeout = new Promise((_, reject) =>
-                    setTimeout(() => {
-                        console.log("⚠ FaceMesh timeout triggered after 10 seconds.");
-                        reject(new Error("⚠ FaceMesh timed out after 10 seconds."));
-                    }, 10000)
-                );
-                const predictionsPromise = window.faceMeshModel.estimateFaces(canvas);
-                console.log("⏳ Waiting for estimateFaces or timeout...");
-                const predictions = await Promise.race([predictionsPromise, faceDetectionTimeout]);
+                const predictions = await window.faceMeshModel.estimateFaces(canvas);
                 console.log(`🔍 FaceMesh detected ${predictions.length} faces.`);
+
                 if (predictions.length === 0) {
                     console.warn("⚠ No face detected. Returning original image.");
                     resolve(canvas.toDataURL("image/png"));
                     return;
                 }
-                console.log("✅ Face detected. Applying mask...");
+
+                console.log("✅ Face detected. Cropping to square...");
                 const keypoints = predictions[0].scaledMesh;
                 let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
                 keypoints.forEach(([x, y]) => {
@@ -178,29 +173,36 @@ async function applyRoundMask(imageBlob) {
                     if (y < minY) minY = y;
                     if (y > maxY) maxY = y;
                 });
+
+                // Define the original face bounding box
                 const faceWidth = maxX - minX;
                 const faceHeight = maxY - minY;
+                
+                // Expand crop size by 30% for zoom-out effect
+                const squareSize = Math.max(faceWidth, faceHeight) * 1.6;
+
                 const faceCenterX = minX + faceWidth / 2;
                 let faceCenterY = minY + faceHeight / 2;
-                const circleRadius = Math.max(faceWidth, faceHeight) * 0.6;
-                faceCenterY -= circleRadius * 0.23;
-                console.log(`🔵 Mask Position | CenterX: ${faceCenterX}, CenterY: ${faceCenterY}, Radius: ${circleRadius}`);
-                ctx.globalCompositeOperation = "destination-in";
-                ctx.beginPath();
-                ctx.arc(faceCenterX, faceCenterY, circleRadius, 0, Math.PI * 2);
-                ctx.closePath();
-                ctx.fill();
-                ctx.globalCompositeOperation = "source-over";
-                console.log("✅ Mask applied successfully! Cropping image to square around mask.");
-                const cropSize = circleRadius * 2;
-                const cropX = faceCenterX - circleRadius;
-                const cropY = faceCenterY - circleRadius;
+                faceCenterY -= squareSize * 0.1; // Adjust face positioning slightly
+
+                // Define square cropping area (expand the frame)
+                const cropX = faceCenterX - squareSize / 2;
+                const cropY = faceCenterY - squareSize / 2;
+
+                console.log(`🟦 Cropping square | X: ${cropX}, Y: ${cropY}, Size: ${squareSize}`);
+
+                // Crop to square
                 const croppedCanvas = document.createElement("canvas");
-                croppedCanvas.width = cropSize;
-                croppedCanvas.height = cropSize;
+                croppedCanvas.width = squareSize;
+                croppedCanvas.height = squareSize;
                 const croppedCtx = croppedCanvas.getContext("2d");
                 croppedCtx.imageSmoothingEnabled = false;
-                croppedCtx.drawImage(canvas, cropX, cropY, cropSize, cropSize, 0, 0, cropSize, cropSize);
+                croppedCtx.drawImage(
+                    canvas,
+                    cropX, cropY, squareSize, squareSize,
+                    0, 0, squareSize, squareSize
+                );
+
                 resolve(croppedCanvas.toDataURL("image/png"));
             } catch (error) {
                 console.error("❌ Error during FaceMesh processing:", error);
@@ -213,6 +215,8 @@ async function applyRoundMask(imageBlob) {
         img.src = URL.createObjectURL(imageBlob);
     });
 }
+
+
 
 //
 // Main Application Code
@@ -501,7 +505,7 @@ uploadPlayerBtn.addEventListener('click', async () => {
         const processedBlob = await removeBackground(file);
         console.log("✅ Background Removed! Blob:", processedBlob);
         console.log("🔵 Applying Round Mask...");
-        const finalImage = await applyRoundMask(processedBlob);
+        const finalImage = await cropFaceToSquare(processedBlob);
         console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
         players.push({ name: playerName, image: finalImage });
         console.log(`✅ New Player Added: ${playerName}`);
@@ -539,30 +543,39 @@ uploadPlayerBtn.addEventListener('click', async () => {
     }
 
     // Render players (grid cards). Each card is clickable, and a "Selected" tag appears if selected.
-    function renderPlayers() {
-        console.log("🔄 Rendering Players...");
-        uploadedPlayersContainer.innerHTML = "";
-        players.forEach((p, index) => {
-            const isSelected = selectedPlayers.has(p.name);
-            uploadedPlayersContainer.innerHTML += `
-                <div class="player-selection ${isSelected ? 'selected' : ''}" data-player-name="${p.name}">
-                    ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
-                    <span class="player-name">${p.name}</span>
-					<img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img" style="width:150px;">
-                    ${isSelected ? `<div class="selected-tag">Selected</div>` : ''}
-                </div>
-            `;
-            console.log(`✅ Player Rendered: ${p.name} (Selected: ${isSelected})`);
-        });
-        // Append the "Add New Player" card (which has no delete button)
+function renderPlayers() {
+    console.log("🔄 Rendering Players...");
+    uploadedPlayersContainer.innerHTML = "";
+    
+    // Load players from localStorage
+    let storedPlayers = JSON.parse(localStorage.getItem('players')) || [];
+    
+    players.forEach((p, index) => {
+        // Check if the player is a new player (not default)
+        let isNewPlayer = storedPlayers.some(sp => sp.name === p.name);
+
+        const isSelected = selectedPlayers.has(p.name);
         uploadedPlayersContainer.innerHTML += `
-            <div class="player-selection add-new" data-action="add-new">
-                <span class="plus-icon">+</span>
-                <span class="player-name">Add New Player</span>
+            <div class="player-selection ${isSelected ? 'selected' : ''} ${isNewPlayer ? 'new-player' : ''}" data-player-name="${p.name}">
+                ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
+                <span class="player-name">${p.name}</span>
+                <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img">
+                ${isSelected ? `<div class="selected-tag">Selected</div>` : ''}
             </div>
         `;
-        updateSelectionTitle();
-    }
+        console.log(`✅ Player Rendered: ${p.name} (Selected: ${isSelected}, New Player: ${isNewPlayer})`);
+    });
+
+    // Append the "Add New Player" card (which has no delete button)
+    uploadedPlayersContainer.innerHTML += `
+        <div class="player-selection add-new" data-action="add-new">
+            <span class="plus-icon">+</span>
+            <span class="player-name">Add New Player</span>
+        </div>
+    `;
+    updateSelectionTitle();
+}
+
 
     // Toggle selection based on player name.
     function handlePlayerSelection(playerName) {
