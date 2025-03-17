@@ -1,4 +1,4 @@
-/* (function() {
+(function() {
     // Create a debug log container fixed at the top with a semitransparent background.
     const debugLog = document.createElement("div");
     debugLog.id = "debugLog";
@@ -36,7 +36,7 @@
         messageDiv.textContent = message;
         debugLog.appendChild(messageDiv);
     };
-})(); */
+})();
 
 //
 // Global Helper Functions
@@ -251,13 +251,14 @@ if (isMobileDevice) {
   if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
     console.log("Mobile device detected: Setting up tabs for new player form.");
     // Set default active tab: Storage
+	console.log("🔄 Defaulting to 'Browse' tab on load.");
     tabStorage.classList.add('active');
     tabContentStorage.style.display = 'block';
     tabCamera.classList.remove('active');
     tabContentCamera.style.display = 'none';
     
     tabStorage.addEventListener('click', () => {
-      console.log("Mobile: Storage tab clicked.");
+      console.log("🖼️ User clicked 'Open Gallery' tab.");
       tabStorage.classList.add('active');
       tabCamera.classList.remove('active');
       tabContentStorage.style.display = 'block';
@@ -265,29 +266,76 @@ if (isMobileDevice) {
     });
     
     tabCamera.addEventListener('click', () => {
-      console.log("Mobile: Camera tab clicked.");
+      console.log("📷 User clicked 'Take Photo' tab. Camera should trigger.");
       tabCamera.classList.add('active');
       tabStorage.classList.remove('active');
       tabContentCamera.style.display = 'block';
       tabContentStorage.style.display = 'none';
+	  
+	  // Automatically trigger the camera
+		const captureInput = document.createElement("input");
+		captureInput.type = "file";
+		captureInput.accept = "image/*";
+		captureInput.setAttribute("capture", "environment");
+		captureInput.style.display = "none";
+		document.body.appendChild(captureInput);
+
+		captureInput.addEventListener("change", () => {
+			const file = captureInput.files[0];
+			if (file) {
+				console.log("✅ Photo taken. Updating UI.");
+				const imageSrc = URL.createObjectURL(file);
+				updateUIAfterImageSelection(imageSrc);
+				window.capturedFile = file;
+			} else {
+				console.log("❌ No photo captured. Resetting tab to 'Browse'.");
+				resetTabToBrowse(); // If no photo is captured, switch back to Browse
+			}
+			document.body.removeChild(captureInput);
+		});
+
+		captureInput.click();
     });
   } else {
     console.log("Mobile: Tab elements missing in HTML.");
   }
 } else {
-  console.log("Desktop device detected: Hiding tab controls, defaulting to storage mode.");
-  // Optionally hide tab controls on desktop.
-  const tabControls = document.getElementById('tabControls');
-  if (tabControls) {
-    tabControls.style.display = 'none';
-  }
-  // Also, ensure that the storage mode is visible by default:
-  const tabContentStorage = document.getElementById('tabContentStorage');
-  if (tabContentStorage) {
-    tabContentStorage.style.display = 'block';
-  }
-}
+	  console.log("Desktop device detected: Hiding tab controls, defaulting to storage mode.");
+	  // Optionally hide tab controls on desktop.
+	  const tabControls = document.getElementById('tabControls');
+	  if (tabControls) {
+		tabControls.style.display = 'none';
+	  }
+	  // Also, ensure that the storage mode is visible by default:
+	  const tabContentStorage = document.getElementById('tabContentStorage');
+	  if (tabContentStorage) {
+		tabContentStorage.style.display = 'block';
+	  }
+	}
+	
+	// Function to reset the tab to "Browse" mode after a player is added or if camera is exited
+	function resetTabToBrowse() {
+		console.log("🔄 Resetting to Browse Mode");
+		
+		// Ensure the elements exist before modifying them
+		const tabStorage = document.getElementById('tabStorage');
+		const tabCamera = document.getElementById('tabCamera');
+		const tabContentStorage = document.getElementById('tabContentStorage');
+		const tabContentCamera = document.getElementById('tabContentCamera');
 
+		if (!tabStorage || !tabCamera || !tabContentStorage || !tabContentCamera) {
+			console.error("🚨 Error: One or more tab elements are missing in resetTabToBrowse()");
+			return;
+		}
+		
+		tabStorage.classList.add("active");
+		tabCamera.classList.remove("active");
+
+		tabContentStorage.style.display = "block";
+		tabContentCamera.style.display = "none";
+		
+		console.log("✅ Successfully switched to 'Browse' tab.");
+	}
 
     // Create the message container below the players grid if it doesn't exist.
     let messageContainer = document.getElementById('message-container');
@@ -446,23 +494,26 @@ cameraTab.addEventListener("click", () => {
     captureInput.style.display = "none";
     document.body.appendChild(captureInput);
 
-    captureInput.addEventListener("change", () => {
-        const file = captureInput.files[0];
-        if (file) {
-            const imageSrc = URL.createObjectURL(file);
-            updateUIAfterImageSelection(imageSrc);
-            window.capturedFile = file;
-        }
-        document.body.removeChild(captureInput);
-    });
+	captureInput.addEventListener("change", () => {
+			const file = captureInput.files[0];
+			if (file) {
+				const imageSrc = URL.createObjectURL(file);
+				updateUIAfterImageSelection(imageSrc);
+				window.capturedFile = file;
+			} else {
+				console.log("❌ No photo taken. Switching back to Browse Mode.");
+				resetTabToBrowse();
+			}
+			document.body.removeChild(captureInput);
+		});
 
     captureInput.click();
 });
 
 
 
-    // Handle New Player Upload (Add Player) with separate validation.
-uploadPlayerBtn.addEventListener('click', async () => {
+// Handle New Player Upload (Add Player) with separate validation.
+uploadPlayerBtn.addEventListener("click", async () => {
     uploadPlayerBtn.textContent = "Uploading Player...";
     uploadPlayerBtn.disabled = true;
     
@@ -501,6 +552,9 @@ uploadPlayerBtn.addEventListener('click', async () => {
         uploadPlayerBtn.disabled = false;
         return;
     }
+	
+	//const playerName = playerNameInput.value.trim();
+    console.log("Player name entered:", playerName);
     
     // Validate player name input.
     if (!playerName) {
@@ -539,7 +593,7 @@ try {
     // Save and render players
     savePlayers();
     renderPlayers();
-    console.log("📂 Image saved to localStorage.");
+    console.log("📂 Image saved to localStorage & UI updated.");
 
     // ✅ Hide the new player form after successful upload
     newPlayerContainer.style.display = "none";
@@ -559,12 +613,15 @@ try {
         imagePreview.style.display = "none";
     }
 	
-	// ✅ Clear the player name input
-	playerNameInput.value = "";
-	playerNameInput.style.display = "none";
+    // ✅ Clear the player name input
+    playerNameInput.value = "";
+    playerNameInput.style.display = "none";
 	
-	// ✅ Hide the upload button
-	uploadPlayerBtn.style.display = "none";
+    // ✅ Hide the upload button
+    uploadPlayerBtn.style.display = "none";
+
+    // ✅ Reset the tab to Browse mode to prevent camera auto-trigger on next player
+    resetTabToBrowse();
 
 } catch (error) {
     console.error("❌ Image Processing Failed:", error);
@@ -574,6 +631,7 @@ try {
 }
 
 });
+
 
     function savePlayers() {
         localStorage.setItem('players', JSON.stringify(players));
