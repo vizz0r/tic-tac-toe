@@ -242,93 +242,121 @@ document.addEventListener('DOMContentLoaded', () => {
 const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
 console.log("isMobileDevice:", isMobileDevice);
 
+// Function to reset the tab to "Browse" mode after a player is added or if camera is exited
+function resetTabToBrowse() {
+    console.log("🔄 Resetting to Browse Mode");
+
+    const tabStorage = document.getElementById('tabStorage');
+    const tabCamera = document.getElementById('tabCamera');
+    const tabContentStorage = document.getElementById('tabContentStorage');
+    const tabContentCamera = document.getElementById('tabContentCamera');
+
+    if (!tabStorage || !tabCamera || !tabContentStorage || !tabContentCamera) {
+        console.error("🚨 Error: One or more tab elements are missing in resetTabToBrowse()");
+        return;
+    }
+
+    tabStorage.classList.add("active");
+    tabCamera.classList.remove("active");
+
+    tabContentStorage.style.display = "block";
+    tabContentCamera.style.display = "none";
+
+    console.log("✅ Successfully switched to 'Browse' tab.");
+}
+
 // Tab switching for new player form (mobile only)
 if (isMobileDevice) {
-  const tabStorage = document.getElementById('tabStorage');
-  const tabCamera = document.getElementById('tabCamera');
-  const tabContentStorage = document.getElementById('tabContentStorage');
-  const tabContentCamera = document.getElementById('tabContentCamera');
-  if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
-    console.log("Mobile device detected: Setting up tabs for new player form.");
-    // Set default active tab: Storage
-	console.log("🔄 Defaulting to 'Browse' tab on load.");
-    tabStorage.classList.add('active');
-    tabContentStorage.style.display = 'block';
-    tabCamera.classList.remove('active');
-    tabContentCamera.style.display = 'none';
-    
-    tabStorage.addEventListener('click', () => {
-      console.log("🖼️ User clicked 'Open Gallery' tab.");
-      tabStorage.classList.add('active');
-      tabCamera.classList.remove('active');
-      tabContentStorage.style.display = 'block';
-      tabContentCamera.style.display = 'none';
-    });
-    
-    tabCamera.addEventListener('click', () => {
-      console.log("📷 User clicked 'Take Photo' tab. Camera should trigger.");
-      tabCamera.classList.add('active');
-      tabStorage.classList.remove('active');
-      tabContentCamera.style.display = 'block';
-      tabContentStorage.style.display = 'none';
-	  
-	  // Automatically trigger the camera
-		const captureInput = document.createElement("input");
-		captureInput.type = "file";
-		captureInput.accept = "image/*";
-		captureInput.setAttribute("capture", "environment");
-		captureInput.style.display = "none";
-		document.body.appendChild(captureInput);
-		
-		let cameraOpen = true; // ✅ Track if the camera UI is still open
+    const tabStorage = document.getElementById('tabStorage');
+    const tabCamera = document.getElementById('tabCamera');
+    const tabContentStorage = document.getElementById('tabContentStorage');
+    const tabContentCamera = document.getElementById('tabContentCamera');
 
-		// Detect when the camera is closed
-		const detectCameraClosure = () => {
-			if (cameraOpen) { 
-				console.log("❌ Camera was closed without taking a photo. Resetting tab.");
-				resetTabToBrowse();
-			}
-			window.removeEventListener("focus", detectCameraClosure); // ✅ Cleanup listener
-		};
+    if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
+        console.log("Mobile device detected: Setting up tabs for new player form.");
 
-		// Add a focus listener to detect when the user returns to the page (after closing camera)
-		window.addEventListener("focus", detectCameraClosure);
+        // Set default active tab: Storage
+        console.log("🔄 Defaulting to 'Browse' tab on load.");
+        resetTabToBrowse();
 
-		captureInput.addEventListener("change", () => {
-			const file = captureInput.files[0];
-			if (file) {
-				console.log("✅ Photo taken. Updating UI.");
-				const imageSrc = URL.createObjectURL(file);
-				updateUIAfterImageSelection(imageSrc);
-				window.capturedFile = file;
-				cameraOpen = false; // ✅ Mark camera as "photo taken"
-				
-				// ✅ Reset the tab to Browse mode after attaching the photo
-				console.log("🔄 Resetting tab to Browse after successful photo.");
-				setTimeout(resetTabToBrowse, 500); // Short delay to ensure UI updates correctly
-			}
-			document.body.removeChild(captureInput);
-			window.removeEventListener("focus", detectCameraClosure); // ✅ Cleanup listener
-		});
+        tabStorage.addEventListener('click', () => {
+            console.log("🖼️ User clicked 'Open Gallery' tab.");
+            resetTabToBrowse();
+        });
 
-		captureInput.click();
-	});
-  } else {
-    console.log("Mobile: Tab elements missing in HTML.");
-  }
+        tabCamera.addEventListener('click', () => {
+            console.log("📷 User clicked 'Take Photo' tab. Camera should trigger.");
+            tabCamera.classList.add('active');
+            tabStorage.classList.remove('active');
+            tabContentCamera.style.display = 'block';
+            tabContentStorage.style.display = 'none';
+
+            // Automatically trigger the camera
+            const captureInput = document.createElement("input");
+            captureInput.type = "file";
+            captureInput.accept = "image/*";
+            captureInput.setAttribute("capture", "environment");
+            captureInput.style.display = "none";
+            document.body.appendChild(captureInput);
+
+            let cameraOpen = true; // ✅ Track if the camera UI is still open
+            let photoTaken = false; // ✅ Track if a photo is actually taken
+
+            // Function to detect camera closure without a photo
+            const detectCameraClosure = () => {
+                if (cameraOpen && !photoTaken) { 
+                    console.log("❌ Camera was closed without taking a photo. Resetting tab.");
+                    resetTabToBrowse();
+                }
+                window.removeEventListener("focus", detectCameraClosure); // ✅ Cleanup listener
+            };
+
+            // Add a focus listener to detect when the user returns to the page (after closing camera)
+            window.addEventListener("focus", detectCameraClosure);
+
+            captureInput.addEventListener("change", () => {
+                const file = captureInput.files[0];
+                if (file) {
+                    console.log("✅ Photo taken. Updating UI.");
+                    const imageSrc = URL.createObjectURL(file);
+                    updateUIAfterImageSelection(imageSrc);
+                    window.capturedFile = file;
+                    cameraOpen = false; // ✅ Mark camera as "photo taken"
+                    photoTaken = true; // ✅ Photo was actually taken
+
+                    // ✅ Immediately remove camera closure detection
+                    window.removeEventListener("focus", detectCameraClosure);
+
+                    // ✅ Reset the tab to Browse mode after attaching the photo
+                    console.log("🔄 Resetting tab to Browse after successful photo.");
+                    setTimeout(resetTabToBrowse, 500); // Short delay to ensure UI updates correctly
+                } else {
+                    console.log("❌ No photo taken. Camera closed. Resetting tab.");
+                    resetTabToBrowse();
+                }
+                document.body.removeChild(captureInput);
+            });
+
+            captureInput.click();
+        });
+    } else {
+        console.log("Mobile: Tab elements missing in HTML.");
+    }
 } else {
-	  console.log("Desktop device detected: Hiding tab controls, defaulting to storage mode.");
-	  // Optionally hide tab controls on desktop.
-	  const tabControls = document.getElementById('tabControls');
-	  if (tabControls) {
-		tabControls.style.display = 'none';
-	  }
-	  // Also, ensure that the storage mode is visible by default:
-	  const tabContentStorage = document.getElementById('tabContentStorage');
-	  if (tabContentStorage) {
-		tabContentStorage.style.display = 'block';
-	  }
-	}
+    console.log("Desktop device detected: Hiding tab controls, defaulting to storage mode.");
+    // Optionally hide tab controls on desktop.
+    const tabControls = document.getElementById('tabControls');
+    if (tabControls) {
+        tabControls.style.display = 'none';
+    }
+    // Also, ensure that the storage mode is visible by default:
+    const tabContentStorage = document.getElementById('tabContentStorage');
+    if (tabContentStorage) {
+        tabContentStorage.style.display = 'block';
+    }
+}
+
+
 	
 	// Function to reset the tab to "Browse" mode after a player is added or if camera is exited
 	function resetTabToBrowse() {
