@@ -218,14 +218,17 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
   font-weight: bold;
 }
 
-
-
-/* Ensure images are responsive */
+/* PLayer selection */
 .player-img {
-  width: 100%;
-  height: auto;
-  max-width: 200px;
+  width: 150px;
 }
+
+/* Game board appearance */
+.cell img.new-player {
+    width: 100% !important;
+	height: 100% !important;
+}
+
 
 #newPlayerContainer button {
 	width: fit-content;

@@ -114,16 +114,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updateCell(cell, index) {
-        gameState[index] = currentPlayer;
-        // Add player image inside the cell
-        const img = document.createElement("img");
-        img.src = currentPlayer === "X" ? playerXSrc : playerOSrc;
-        img.alt = currentPlayer === "X" ? playerXName : playerOName;
-        cell.appendChild(img);
-        // Apply highlight color based on player
-        cell.classList.add(currentPlayer === "X" ? "blue-bg" : "orange-bg");
+function updateCell(cell, index) {
+    gameState[index] = currentPlayer;
+
+    // Create player image
+    const img = document.createElement("img");
+    img.src = currentPlayer === "X" ? playerXSrc : playerOSrc;
+    img.alt = currentPlayer === "X" ? playerXName : playerOName;
+
+    // ✅ Define the default players
+    const defaultPlayers = ["Alex", "Martin"];
+
+    // ✅ Check if the current player is NOT a default player
+    let isNewPlayer = !defaultPlayers.includes(currentPlayer === "X" ? playerXName : playerOName);
+
+    // ✅ Apply "new-player" class ONLY to newly added players
+    if (isNewPlayer) {
+        img.classList.add("new-player");
     }
+
+    // Append the image inside the cell
+    cell.appendChild(img);
+
+    // Apply highlight color based on player
+    cell.classList.add(currentPlayer === "X" ? "blue-bg" : "orange-bg");
+}
+
 
     function changePlayer() {
         currentPlayer = currentPlayer === "X" ? "O" : "X";
