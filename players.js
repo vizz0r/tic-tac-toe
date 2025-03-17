@@ -183,7 +183,7 @@ async function cropFaceToSquare(imageBlob) {
 
                 const faceCenterX = minX + faceWidth / 2;
                 let faceCenterY = minY + faceHeight / 2;
-                faceCenterY -= squareSize * 0.1; // Adjust face positioning slightly
+                faceCenterY -= squareSize * 0.1; // moves the cropping area upward slightly
 
                 // Define square cropping area (expand the frame)
                 const cropX = faceCenterX - squareSize / 2;
@@ -520,45 +520,59 @@ uploadPlayerBtn.addEventListener('click', async () => {
         return;
     }
     
-    try {
-        console.log("✅ Name is unique. Proceeding with image processing...");
-        console.log("📸 Processing image for:", playerName);
-        console.log("🛠 File Details:", file);
-        console.log("🎨 Removing Background...");
-        const processedBlob = await removeBackground(file);
-        console.log("✅ Background Removed! Blob:", processedBlob);
-        console.log("🔵 Applying Round Mask...");
-        const finalImage = await cropFaceToSquare(processedBlob);
-        console.log("✅ Round Mask Applied! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
-        players.push({ name: playerName, image: finalImage });
-        console.log(`✅ New Player Added: ${playerName}`);
-        console.log("🛠 Players After Processing:", players.map(p => p.name));
-        savePlayers();
-        renderPlayers();
-        console.log("📂 Image saved to localStorage.");
-        // Clear inputs and reset stored files.
-        playerUpload.value = "";
-        playerNameInput.value = "";
-        window.selectedFile = null;
-        window.capturedFile = null;
-        let captureStatus = document.getElementById("captureStatus");
-        if (captureStatus) {
-            captureStatus.textContent = "";
-        }
-        // Reset the file input display: show the label and hide the file name display.
-        const fileNameDisplay = document.getElementById('fileNameDisplay');
-        const fileLabel = document.getElementById('fileLabel');
-        if (fileNameDisplay && fileLabel) {
-            fileNameDisplay.textContent = "";
-            fileNameDisplay.style.display = "none";
-            fileLabel.style.display = "inline";
-        }
-    } catch (error) {
-        console.error("❌ Image Processing Failed:", error);
-    } finally {
-        uploadPlayerBtn.textContent = "Upload Player";
-        uploadPlayerBtn.disabled = false;
+try {
+    console.log("✅ Name is unique. Proceeding with image processing...");
+    console.log("📸 Processing image for:", playerName);
+    console.log("🛠 File Details:", file);
+    console.log("🎨 Removing Background...");
+    const processedBlob = await removeBackground(file);
+    console.log("✅ Background Removed! Blob:", processedBlob);
+    console.log("🔵 Applying Face Cropping...");
+    const finalImage = await cropFaceToSquare(processedBlob);
+    console.log("✅ Face Cropped! Base64 Image (first 50 chars):", finalImage.substring(0, 50), "...");
+
+    // Add the new player to the list
+    players.push({ name: playerName, image: finalImage });
+    console.log(`✅ New Player Added: ${playerName}`);
+    console.log("🛠 Players After Processing:", players.map(p => p.name));
+
+    // Save and render players
+    savePlayers();
+    renderPlayers();
+    console.log("📂 Image saved to localStorage.");
+
+    // ✅ Hide the new player form after successful upload
+    newPlayerContainer.style.display = "none";
+
+    // ✅ Reset the file input display
+    const fileNameDisplay = document.getElementById("fileNameDisplay");
+    const fileLabel = document.getElementById("fileLabel");
+    if (fileNameDisplay && fileLabel) {
+        fileNameDisplay.textContent = "";
+        fileNameDisplay.style.display = "none";
+        fileLabel.style.display = "inline";
     }
+
+    // ✅ Hide the image preview
+    const imagePreview = document.getElementById("imagePreview");
+    if (imagePreview) {
+        imagePreview.style.display = "none";
+    }
+	
+	// ✅ Clear the player name input
+	playerNameInput.value = "";
+	playerNameInput.style.display = "none";
+	
+	// ✅ Hide the upload button
+	uploadPlayerBtn.style.display = "none";
+
+} catch (error) {
+    console.error("❌ Image Processing Failed:", error);
+} finally {
+    uploadPlayerBtn.textContent = "Upload Player";
+    uploadPlayerBtn.disabled = false;
+}
+
 });
 
     function savePlayers() {
