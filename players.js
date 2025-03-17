@@ -279,6 +279,21 @@ if (isMobileDevice) {
 		captureInput.setAttribute("capture", "environment");
 		captureInput.style.display = "none";
 		document.body.appendChild(captureInput);
+		
+		// ✅ Mark the camera as active
+		cameraInputActive = true;
+
+		// Detect when the camera is **closed** without taking a picture
+		captureInput.addEventListener("focusout", () => {
+			console.log("❌ Camera was closed or lost focus.");
+			setTimeout(() => {
+				if (cameraInputActive) {
+					console.log("🔄 Resetting tab because camera is not active anymore.");
+					resetTabToBrowse();
+					cameraInputActive = false; // Reset flag
+				}
+			}, 500);
+		});
 
 		captureInput.addEventListener("change", () => {
 			const file = captureInput.files[0];
@@ -288,14 +303,15 @@ if (isMobileDevice) {
 				updateUIAfterImageSelection(imageSrc);
 				window.capturedFile = file;
 			} else {
-				console.log("❌ No photo captured. Resetting tab to 'Browse'.");
-				resetTabToBrowse(); // If no photo is captured, switch back to Browse
+				console.log("❌ No photo taken. Resetting tab.");
+				resetTabToBrowse();
 			}
+			cameraInputActive = false; // Camera is no longer active
 			document.body.removeChild(captureInput);
 		});
 
 		captureInput.click();
-    });
+	});
   } else {
     console.log("Mobile: Tab elements missing in HTML.");
   }
