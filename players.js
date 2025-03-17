@@ -280,20 +280,7 @@ if (isMobileDevice) {
 		captureInput.style.display = "none";
 		document.body.appendChild(captureInput);
 		
-		// ✅ Mark the camera as active
-		cameraInputActive = true;
-
-		// Detect when the camera is **closed** without taking a picture
-		captureInput.addEventListener("focusout", () => {
-			console.log("❌ Camera was closed or lost focus.");
-			setTimeout(() => {
-				if (cameraInputActive) {
-					console.log("🔄 Resetting tab because camera is not active anymore.");
-					resetTabToBrowse();
-					cameraInputActive = false; // Reset flag
-				}
-			}, 500);
-		});
+		let cameraWasOpened = true; // ✅ Track if the camera was opened
 
 		captureInput.addEventListener("change", () => {
 			const file = captureInput.files[0];
@@ -302,15 +289,22 @@ if (isMobileDevice) {
 				const imageSrc = URL.createObjectURL(file);
 				updateUIAfterImageSelection(imageSrc);
 				window.capturedFile = file;
+				cameraWasOpened = false; // ✅ Reset flag since an image was taken
 			} else {
-				console.log("❌ No photo taken. Resetting tab.");
-				resetTabToBrowse();
+				console.log("❌ No photo selected.");
 			}
-			cameraInputActive = false; // Camera is no longer active
 			document.body.removeChild(captureInput);
 		});
 
 		captureInput.click();
+
+		// ✅ Check after 3 seconds if the user closed the camera without taking a photo
+		setTimeout(() => {
+			if (cameraWasOpened) { // If the camera was still open but no image was selected
+				console.log("❌ Camera was closed without taking a photo. Resetting tab.");
+				resetTabToBrowse();
+			}
+		}, 3000); // Adjust time if necessary
 	});
   } else {
     console.log("Mobile: Tab elements missing in HTML.");
