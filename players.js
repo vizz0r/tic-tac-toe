@@ -325,7 +325,7 @@ if (isMobileDevice) {
     const playerUpload = document.getElementById('playerUpload'); // Hidden file input inside newPlayerContainer
     const playerNameInput = document.getElementById('playerName');
     const uploadPlayerBtn = document.getElementById('uploadPlayerBtn'); // Now labeled "Add Player"
-    const takePhotoBtn = document.getElementById('takePhotoBtn'); // Mobile camera capture
+    //const takePhotoBtn = document.getElementById('takePhotoBtn'); // Mobile camera capture
     const startGameBtn = document.getElementById('startGameBtn');
 
     // Attach custom file input event listener for the "Browse" button.
@@ -339,29 +339,41 @@ if (isMobileDevice) {
     if (playerUpload) {
         playerUpload.setAttribute("accept", "image/*");
     }
-    playerUpload.addEventListener('change', () => {
-        const fileNameDisplay = document.getElementById('fileNameDisplay');
-        const fileLabel = document.querySelector('#browse .file-label');
-        if (playerUpload.files && playerUpload.files[0]) {
-            window.selectedFile = playerUpload.files[0];
-            console.log("📁 File selected:", window.selectedFile.name);
-            if (fileNameDisplay && fileLabel) {
-                fileNameDisplay.textContent = window.selectedFile.name;
-                fileNameDisplay.style.display = "inline-block";
-                fileLabel.style.display = "none";
-            }
-        } else {
-            if (fileNameDisplay && fileLabel) {
-                fileNameDisplay.textContent = "No file attached.";
-                fileNameDisplay.style.display = "inline-block";
-                fileLabel.style.display = "none";
-            }
-        }
-    });
+// Function to update the UI after an image is selected
+function updateUIAfterImageSelection(imageSrc) {
+    // Show name input and upload button
+    playerNameInput.style.display = "block";
+    uploadPlayerBtn.style.display = "block";
+
+    // Show a preview of the image
+    let imagePreview = document.getElementById("imagePreview");
+    if (!imagePreview) {
+        imagePreview = document.createElement("img");
+        imagePreview.id = "imagePreview";
+        imagePreview.style.width = "100px";
+        imagePreview.style.marginTop = "10px";
+        playerNameInput.parentNode.insertBefore(imagePreview, playerNameInput);
+    }
+    imagePreview.src = imageSrc;
+}
+
+// Modify the file input event listener
+playerUpload.addEventListener('change', () => {
+    const file = playerUpload.files[0];
+    if (file) {
+        const imageSrc = URL.createObjectURL(file);
+        updateUIAfterImageSelection(imageSrc);
+
+        // Update text confirmation
+        fileNameDisplay.textContent = file.name;
+        fileNameDisplay.style.display = "inline-block";
+        fileLabel.style.display = "none";
+    }
+});
 
     // Detect mobile device and camera.
-    const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
-    takePhotoBtn.style.display = (isMobileDevice && hasCamera) ? "inline-block" : "none";
+    //const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    //takePhotoBtn.style.display = (isMobileDevice && hasCamera) ? "inline-block" : "none";
 
     // Retrieve stored players.
     let players = JSON.parse(localStorage.getItem('players')) || [
@@ -411,32 +423,43 @@ if (isMobileDevice) {
         }
     });
 
-    // Mobile: Handle Take Photo Button.
-    takePhotoBtn.addEventListener("click", () => {
-        const captureInput = document.createElement("input");
-        captureInput.type = "file";
-        captureInput.accept = "image/*";
-        captureInput.setAttribute("capture", "environment");
-        captureInput.style.display = "none";
-        document.body.appendChild(captureInput);
-        captureInput.addEventListener("change", () => {
-            const file = captureInput.files[0];
-            if (file) {
-                window.capturedFile = file;
-                console.log("📸 Photo captured from camera.");
-                let captureStatus = document.getElementById("captureStatus");
-                if (!captureStatus) {
-                    captureStatus = document.createElement("span");
-                    captureStatus.id = "captureStatus";
-                    captureStatus.style.marginLeft = "10px";
-                    takePhotoBtn.parentNode.insertBefore(captureStatus, takePhotoBtn.nextSibling);
-                }
-                captureStatus.textContent = "Photo captured";
-            }
-            document.body.removeChild(captureInput);
-        });
-        captureInput.click();
+// Modify the Take Photo button behavior
+const cameraTab = document.getElementById("tabCamera");
+const storageTab = document.getElementById("tabStorage");
+const tabContentCamera = document.getElementById("tabContentCamera");
+const tabContentStorage = document.getElementById("tabContentStorage");
+
+// Ensure Take Photo tab immediately triggers the camera
+cameraTab.addEventListener("click", () => {
+    cameraTab.classList.add("active");
+    storageTab.classList.remove("active");
+    tabContentCamera.style.display = "block";
+    tabContentStorage.style.display = "none";
+
+    console.log("📷 Automatically opening the camera...");
+
+    // Auto-trigger the camera
+    const captureInput = document.createElement("input");
+    captureInput.type = "file";
+    captureInput.accept = "image/*";
+    captureInput.setAttribute("capture", "environment");
+    captureInput.style.display = "none";
+    document.body.appendChild(captureInput);
+
+    captureInput.addEventListener("change", () => {
+        const file = captureInput.files[0];
+        if (file) {
+            const imageSrc = URL.createObjectURL(file);
+            updateUIAfterImageSelection(imageSrc);
+            window.capturedFile = file;
+        }
+        document.body.removeChild(captureInput);
     });
+
+    captureInput.click();
+});
+
+
 
     // Handle New Player Upload (Add Player) with separate validation.
 uploadPlayerBtn.addEventListener('click', async () => {

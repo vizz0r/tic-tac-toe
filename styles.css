@@ -265,6 +265,11 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 	gap: 10px;
 }
 
+#imagePreview {
+    border-radius: 8px;
+    display: block;
+}
+
 
 
 /* Game Board Layout */
