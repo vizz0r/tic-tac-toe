@@ -301,7 +301,11 @@ if (isMobileDevice) {
 				const imageSrc = URL.createObjectURL(file);
 				updateUIAfterImageSelection(imageSrc);
 				window.capturedFile = file;
-				cameraOpen = false; // ✅ A photo was taken, so no reset needed
+				cameraOpen = false; // ✅ Mark camera as "photo taken"
+				
+				// ✅ Reset the tab to Browse mode after attaching the photo
+				console.log("🔄 Resetting tab to Browse after successful photo.");
+				setTimeout(resetTabToBrowse, 500); // Short delay to ensure UI updates correctly
 			}
 			document.body.removeChild(captureInput);
 			window.removeEventListener("focus", detectCameraClosure); // ✅ Cleanup listener
