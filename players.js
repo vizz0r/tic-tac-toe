@@ -116,7 +116,7 @@ async function removeBackground(file) {
     console.log("🖼 Processing image for remove.bg API...");
     const processedFile = await processImage(file);
     console.log("✅ Image processing complete. File type:", processedFile.type);
-    const removeBgApiKey = "DM2d2GWCiDxUexxSrvbsV5ZA"; // Replace with your API key
+    const removeBgApiKey = "KjPdyp9s7MMbP3H8JEcscay8"; // Replace with your API key
     const formData = new FormData();
     formData.append("image_file", processedFile);
     formData.append("size", "auto");
