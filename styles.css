@@ -107,7 +107,9 @@ h1 {
 
 /* New Add New Player Card Styling */
 .player-selection.add-new {
-    display: inline-block;
+    display: flex;
+	flex-direction: column;
+    justify-content: center;
     width: auto;
     padding: 15px;
     border: 2px dashed #007BFF;
@@ -123,12 +125,12 @@ h1 {
 .player-selection.add-new .plus-icon {
     font-size: 48px;
     display: block;
-    margin-bottom: 10px;
 }
 .player-selection.add-new .player-name {
     font-size: 18px;
     font-weight: bold;
-	padding: 15px;
+	padding: 0 15px 15px 15px;
+	margin-top: 0;
 }
 
 /* Style player names with increased font size and boldness */
