@@ -280,21 +280,15 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {boolean} fromCamera - Whether this image is from the camera or from browse.
      */
 function updateUIAfterImageSelection(imageSrc, fromCamera) {
-    // Clear any old file references
-    if (playerUpload) {
-        playerUpload.value = "";
-    }
-    window.capturedFile = null; 
-
     // Show name input and upload button
     playerNameInput.style.display = "block";
     uploadPlayerBtn.style.display = "block";
 
-    // Remove any leftover preview containers or confirm messages
+    // Remove any existing confirmation or preview container
     const oldConfirm = document.getElementById("photoConfirmMessage");
     if (oldConfirm) oldConfirm.remove();
-    const oldContainers = document.querySelectorAll("#previewContainer");
-    oldContainers.forEach(container => container.remove());
+    const oldPreviewContainer = document.getElementById("previewContainer");
+    if (oldPreviewContainer) oldPreviewContainer.remove();
 
     // Create a new confirmation message
     const confirmMsg = document.createElement("div");
@@ -302,13 +296,11 @@ function updateUIAfterImageSelection(imageSrc, fromCamera) {
     confirmMsg.style.marginBottom = "5px";
     confirmMsg.style.fontWeight = "bold";
     confirmMsg.style.color = "#007BFF";
-
-    // Different text if from camera or browse
     confirmMsg.textContent = fromCamera
-      ? "Photo taken and attached for preview"
-      : "File attached for preview";
+        ? "Photo taken and attached for preview"
+        : "File attached for preview";
 
-    // Create a container to hold the preview image + delete button
+    // Create a container for the preview + delete button
     const previewContainer = document.createElement("div");
     previewContainer.id = "previewContainer";
     previewContainer.style.display = "flex";
@@ -332,42 +324,46 @@ function updateUIAfterImageSelection(imageSrc, fromCamera) {
     deletePreviewBtn.style.fontSize = "18px";
 
     // When clicked, remove preview & reset form
-    deletePreviewBtn.addEventListener("click", () => {
-        // Remove preview container & confirmation message
-        previewContainer.remove();
-        confirmMsg.remove();
+deletePreviewBtn.addEventListener("click", () => {
+    // Remove the entire preview container + message
+    previewContainer.remove();
+    confirmMsg.remove();
 
-        // Clear file references
-        if (playerUpload) playerUpload.value = "";
-        window.capturedFile = null;
+    // Clear file references
+    if (playerUpload) {
+        playerUpload.value = "";
+    }
+    window.capturedFile = null;
 
-        // Clear fileNameDisplay if it exists
-        if (fileNameDisplay && fileLabel) {
-            fileNameDisplay.textContent = "";
-            fileNameDisplay.style.display = "none";
-            fileLabel.style.display = "inline";
-        }
+    // Clear fileNameDisplay if it exists
+    if (fileNameDisplay && fileLabel) {
+        fileNameDisplay.textContent = "";
+        fileNameDisplay.style.display = "none";
+        fileLabel.style.display = "inline";
+    }
 
-        // Hide name input & upload button
-        playerNameInput.value = "";
-        playerNameInput.style.display = "none";
-        uploadPlayerBtn.style.display = "none";
+    // Hide name input & upload button
+    playerNameInput.value = "";
+    playerNameInput.style.display = "none";
+    uploadPlayerBtn.style.display = "none";
 
-        // Re-activate the "Open Gallery" tab (like a fresh form)
-        const tabStorage = document.getElementById('tabStorage');
-        const tabCamera = document.getElementById('tabCamera');
-        const tabContentStorage = document.getElementById('tabContentStorage');
-        const tabContentCamera = document.getElementById('tabContentCamera');
+    // Re-activate the "Browse" tab
+    const tabStorage = document.getElementById('tabStorage');
+    const tabCamera = document.getElementById('tabCamera');
+    const tabContentStorage = document.getElementById('tabContentStorage');
+    const tabContentCamera = document.getElementById('tabContentCamera');
 
-        if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
-            tabStorage.classList.add('active');
-            tabCamera.classList.remove('active');
-            tabContentStorage.style.display = 'block';
-            tabContentCamera.style.display = 'none';
-        }
+    if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
+        // Force "Browse" tab to be active
+        tabStorage.classList.add('active');
+        tabCamera.classList.remove('active');
+        tabContentStorage.style.display = 'block';
+        tabContentCamera.style.display = 'none';
+    }
 
-        console.log("New player form displayed. Reset to Open Gallery tab.");
-    });
+    console.log("New player form displayed. Reset to 'Open Gallery' tab.");
+});
+
 
     // Assemble everything
     previewContainer.appendChild(imagePreview);
@@ -377,6 +373,7 @@ function updateUIAfterImageSelection(imageSrc, fromCamera) {
     newPlayerContainer.insertBefore(confirmMsg, playerNameInput);
     newPlayerContainer.insertBefore(previewContainer, playerNameInput);
 }
+
 
 
 
@@ -593,89 +590,92 @@ captureInput.addEventListener("change", () => {
     });
 
     // Upload button logic
-    uploadPlayerBtn.addEventListener("click", async () => {
-        uploadPlayerBtn.textContent = "Uploading Player...";
-        uploadPlayerBtn.disabled = true;
-        
-        let file;
-        if (!isMobileDevice) {
-            const tabStorage = document.getElementById('tabStorage');
-            const tabCamera = document.getElementById('tabCamera');
-            if (tabStorage && tabStorage.classList.contains('active')) {
-                file = playerUpload.files[0] || window.selectedFile;
-            } else if (tabCamera && tabCamera.classList.contains('active')) {
-                file = window.capturedFile;
-            } else {
-                file = playerUpload.files[0] || window.selectedFile || window.capturedFile;
-            }
-        } else {
-            file = playerUpload.files[0] || window.selectedFile || window.capturedFile;
-        }
+uploadPlayerBtn.addEventListener("click", async () => {
+    uploadPlayerBtn.textContent = "Uploading Player...";
+    uploadPlayerBtn.disabled = true;
 
-        const playerName = playerNameInput.value.trim();
-        if (!file) {
-            const errorMessage = isMobileDevice 
-                ? "No image selected from gallery or camera." 
-                : "No image selected for upload.";
-            displayMessage(errorMessage);
-            console.log("⚠️ Upload Failed - No file selected.");
-            uploadPlayerBtn.textContent = "Upload Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-        if (!playerName) {
-            displayMessage("Please enter a player name.");
-            console.log("⚠️ Upload Failed - Missing name.");
-            uploadPlayerBtn.textContent = "Upload Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-        if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
-            displayMessage(`A player named "${playerName}" already exists.`);
-            console.log(`❌ Duplicate name detected: ${playerName}`);
-            uploadPlayerBtn.textContent = "Upload Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
+    // Unified fallback: either from "playerUpload" (gallery) or "window.capturedFile" (camera).
+    let file = playerUpload.files[0] || window.capturedFile;
+    console.log("Using fallback file reference:", file);
 
-        try {
-            console.log("✅ Name is unique. Proceeding with image processing...");
-            const processedBlob = await processImage(file);
-            console.log("🎨 Removing Background...");
-            const bgRemovedBlob = await removeBackground(processedBlob);
-            console.log("🔵 Applying Face Cropping...");
-            const finalImage = await cropFaceToSquare(bgRemovedBlob);
-            players.push({ name: playerName, image: finalImage });
-            savePlayers();
-            renderPlayers();
-            console.log(`✅ New Player Added: ${playerName}`);
-            
-            newPlayerContainer.style.display = "none";
-            if (fileNameDisplay && fileLabel) {
-                fileNameDisplay.textContent = "";
-                fileNameDisplay.style.display = "none";
-                fileLabel.style.display = "inline";
-            }
-            const imagePreview = document.getElementById("imagePreview");
-            if (imagePreview) {
-                imagePreview.remove();
-            }
-            const photoConfirm = document.getElementById("photoConfirmMessage");
-            if (photoConfirm) {
-                photoConfirm.remove();
-            }
-            playerNameInput.value = "";
-            playerNameInput.style.display = "none";
-            uploadPlayerBtn.style.display = "none";
+    // Device-specific message if no file
+    if (!file) {
+        const errorMessage = isMobileDevice
+            ? "No image selected from gallery or camera."
+            : "No image selected for upload.";
+        displayMessage(errorMessage);
+        console.log("⚠️ Upload Failed - No file selected.");
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+        return;
+    }
 
-            console.log("📂 Player image processed and UI updated.");
-        } catch (error) {
-            console.error("❌ Image Processing Failed:", error);
-        } finally {
-            uploadPlayerBtn.textContent = "Upload Player";
-            uploadPlayerBtn.disabled = false;
+    const playerName = playerNameInput.value.trim();
+    console.log("Player name entered:", playerName);
+
+    // Validate name
+    if (!playerName) {
+        displayMessage("Please enter a player name.");
+        console.log("⚠️ Upload Failed - Missing name.");
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+        return;
+    }
+
+    // Check for duplicate names
+    if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
+        displayMessage(`A player named "${playerName}" already exists.`);
+        console.log(`❌ Duplicate name detected: ${playerName}`);
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+        return;
+    }
+
+    try {
+        console.log("✅ Name is unique. Proceeding with image processing...");
+        console.log("🛠 File Details:", file);
+
+        // Process image (sharpen, brightness, etc.)
+        const processedBlob = await processImage(file);
+
+        // Remove background
+        console.log("🎨 Removing Background...");
+        const bgRemovedBlob = await removeBackground(processedBlob);
+
+        // Face cropping
+        console.log("🔵 Applying Face Cropping...");
+        const finalImage = await cropFaceToSquare(bgRemovedBlob);
+
+        // Add new player
+        players.push({ name: playerName, image: finalImage });
+        savePlayers();
+        renderPlayers();
+        console.log(`✅ New Player Added: ${playerName}`);
+
+        // Reset UI
+        newPlayerContainer.style.display = "none";
+        if (fileNameDisplay && fileLabel) {
+            fileNameDisplay.textContent = "";
+            fileNameDisplay.style.display = "none";
+            fileLabel.style.display = "inline";
         }
-    });
+        const imagePreview = document.getElementById("imagePreview");
+        if (imagePreview) imagePreview.remove();
+        const photoConfirm = document.getElementById("photoConfirmMessage");
+        if (photoConfirm) photoConfirm.remove();
+        playerNameInput.value = "";
+        playerNameInput.style.display = "none";
+        uploadPlayerBtn.style.display = "none";
+
+        console.log("📂 Player image processed and UI updated.");
+    } catch (error) {
+        console.error("❌ Image Processing Failed:", error);
+    } finally {
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+    }
+});
+
 
     function savePlayers() {
         localStorage.setItem('players', JSON.stringify(players));
