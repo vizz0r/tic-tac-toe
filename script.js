@@ -68,11 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ✅ Function to swap titles (Game Title ↔ Score Title)
     function swapTitles(showScore = false) {
         if (showScore) {
-            gameTitle.style.display = "none";
+            gameTitle.style.display = "block";
             gameScore.style.display = "block";
         } else {
             gameTitle.style.display = "block";
-            gameScore.style.display = "none";
+            gameScore.style.display = "block";
         }
     }
 
