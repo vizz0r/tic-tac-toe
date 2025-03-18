@@ -100,9 +100,13 @@ function applySharpen(imageData) {
     const src = imageData.data;
     const output = new Uint8ClampedArray(src.length);
     const kernel = [
-         0, -1,  0,
+        /* 0, -1,  0,
         -1,  5, -1,
-         0, -1,  0
+         0, -1,  0 */ /* sharper */
+		 
+		0, -0.5, 0,
+		-0.5, 3, -0.5,
+		0, -0.5, 0  /* milder */
     ];
     const kernelSize = 3;
     const half = Math.floor(kernelSize / 2);
