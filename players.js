@@ -111,16 +111,18 @@ function processImage(file) {
     });
 }
 
-// Remove background using remove.bg API.
+// Toggle to skip background removal API (set to true for testing without API)
+const SKIP_BG_API = true;
+
+// Remove background using remove.bg API without double-processing
 async function removeBackground(file) {
-    console.log("🖼 Processing image for remove.bg API...");
-    const processedFile = await processImage(file);
-    console.log("✅ Image processing complete. File type:", processedFile.type);
+    console.log("🖼 Sending raw image to remove.bg API...");
     const removeBgApiKey = "XLZeaz7xuaVeVxX8mPnMR7Mw"; // Replace with your API key
     const formData = new FormData();
-    formData.append("image_file", processedFile);
+    formData.append("image_file", file);
     formData.append("size", "auto");
-    console.log("🖼 Sending processed image to Remove.bg API...");
+
+    console.log("🖼 Sending raw image to Remove.bg API...");
     const response = await fetch("https://api.remove.bg/v1.0/removebg", {
         method: "POST",
         headers: { "X-Api-Key": removeBgApiKey },
@@ -133,6 +135,7 @@ async function removeBackground(file) {
     console.log("✅ Received processed image from Remove.bg.");
     return response.blob();
 }
+
 
 // Crop image to a square based on FaceMesh detection (zoomed out by 30%)
 async function cropFaceToSquare(imageBlob) {
@@ -589,92 +592,110 @@ captureInput.addEventListener("change", () => {
         }
     });
 
-    // Upload button logic
-uploadPlayerBtn.addEventListener("click", async () => {
-    uploadPlayerBtn.textContent = "Uploading Player...";
-    uploadPlayerBtn.disabled = true;
+// Upload button logic with conditional background removal API call.
+    uploadPlayerBtn.addEventListener("click", async () => {
+        uploadPlayerBtn.textContent = "Uploading Player...";
+        uploadPlayerBtn.disabled = true;
 
-    // Unified fallback: either from "playerUpload" (gallery) or "window.capturedFile" (camera).
-    let file = playerUpload.files[0] || window.capturedFile;
-    console.log("Using fallback file reference:", file);
+        // Unified fallback: either from "playerUpload" (gallery) or "window.capturedFile" (camera).
+        let file = playerUpload.files[0] || window.capturedFile;
+        //console.log("Using fallback file reference:", file);
 
-    // Device-specific message if no file
-    if (!file) {
-        const errorMessage = isMobileDevice
-            ? "No image selected from gallery or camera."
-            : "No image selected for upload.";
-        displayMessage(errorMessage);
-        console.log("⚠️ Upload Failed - No file selected.");
-        uploadPlayerBtn.textContent = "Upload Player";
-        uploadPlayerBtn.disabled = false;
-        return;
-    }
-
-    const playerName = playerNameInput.value.trim();
-    console.log("Player name entered:", playerName);
-
-    // Validate name
-    if (!playerName) {
-        displayMessage("Please enter a player name.");
-        console.log("⚠️ Upload Failed - Missing name.");
-        uploadPlayerBtn.textContent = "Upload Player";
-        uploadPlayerBtn.disabled = false;
-        return;
-    }
-
-    // Check for duplicate names
-    if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
-        displayMessage(`A player named "${playerName}" already exists.`);
-        console.log(`❌ Duplicate name detected: ${playerName}`);
-        uploadPlayerBtn.textContent = "Upload Player";
-        uploadPlayerBtn.disabled = false;
-        return;
-    }
-
-    try {
-        console.log("✅ Name is unique. Proceeding with image processing...");
-        console.log("🛠 File Details:", file);
-
-        // Process image (sharpen, brightness, etc.)
-        const processedBlob = await processImage(file);
-
-        // Remove background
-        console.log("🎨 Removing Background...");
-        const bgRemovedBlob = await removeBackground(processedBlob);
-
-        // Face cropping
-        console.log("🔵 Applying Face Cropping...");
-        const finalImage = await cropFaceToSquare(bgRemovedBlob);
-
-        // Add new player
-        players.push({ name: playerName, image: finalImage });
-        savePlayers();
-        renderPlayers();
-        console.log(`✅ New Player Added: ${playerName}`);
-
-        // Reset UI
-        newPlayerContainer.style.display = "none";
-        if (fileNameDisplay && fileLabel) {
-            fileNameDisplay.textContent = "";
-            fileNameDisplay.style.display = "none";
-            fileLabel.style.display = "inline";
+        if (!file) {
+            const errorMessage = isMobileDevice
+                ? "No image selected from gallery or camera."
+                : "No image selected for upload.";
+            displayMessage(errorMessage);
+            console.log("⚠️ Upload Failed - No file selected.");
+            uploadPlayerBtn.textContent = "Upload Player";
+            uploadPlayerBtn.disabled = false;
+            return;
         }
-        const imagePreview = document.getElementById("imagePreview");
-        if (imagePreview) imagePreview.remove();
-        const photoConfirm = document.getElementById("photoConfirmMessage");
-        if (photoConfirm) photoConfirm.remove();
-        playerNameInput.value = "";
-        playerNameInput.style.display = "none";
-        uploadPlayerBtn.style.display = "none";
 
-        console.log("📂 Player image processed and UI updated.");
-    } catch (error) {
-        console.error("❌ Image Processing Failed:", error);
-    } finally {
-        uploadPlayerBtn.textContent = "Upload Player";
-        uploadPlayerBtn.disabled = false;
-    }
-});
+        const playerName = playerNameInput.value.trim();
+        console.log("Player name entered:", playerName);
+
+        if (!playerName) {
+            displayMessage("Please enter a player name.");
+            console.log("⚠️ Upload Failed - Missing name.");
+            uploadPlayerBtn.textContent = "Upload Player";
+            uploadPlayerBtn.disabled = false;
+            return;
+        }
+
+        if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
+            displayMessage(`A player named "${playerName}" already exists.`);
+            console.log(`❌ Duplicate name detected: ${playerName}`);
+            uploadPlayerBtn.textContent = "Upload Player";
+            uploadPlayerBtn.disabled = false;
+            return;
+        }
+
+        try {
+            console.log("✅ Name is unique. Proceeding with image processing...");
+            console.log("🛠 File Details:", file);
+
+            // Process the image (apply brightness, contrast, saturation, and sharpen)
+            const processedBlob = await processImage(file);
+
+            // Conditionally skip the background removal API
+            let finalBlob;
+            if (SKIP_BG_API) {
+                console.log("😊 Skipping background removal API. Using processed image for further manipulation.");
+                finalBlob = processedBlob;
+            } else {
+                console.log("🎨 Removing Background via API...");
+                finalBlob = await removeBackground(processedBlob);
+            }
+
+            // Continue with face cropping (and any other image manipulation)
+            console.log("🔵 Applying Face Cropping...");
+            const finalImage = await cropFaceToSquare(finalBlob);
+
+            // Add new player and update UI
+            players.push({ name: playerName, image: finalImage });
+            savePlayers();
+            renderPlayers();
+            console.log(`✅ New Player Added: ${playerName}`);
+
+            // Reset UI
+            newPlayerContainer.style.display = "none";
+            if (fileNameDisplay && fileLabel) {
+                fileNameDisplay.textContent = "";
+                fileNameDisplay.style.display = "none";
+                fileLabel.style.display = "inline";
+            }
+            const imagePreview = document.getElementById("imagePreview");
+            if (imagePreview) imagePreview.remove();
+            const photoConfirm = document.getElementById("photoConfirmMessage");
+            if (photoConfirm) photoConfirm.remove();
+			const previewContainer = document.getElementById("previewContainer");
+			if (previewContainer) previewContainer.remove();
+            playerNameInput.value = "";
+            playerNameInput.style.display = "none";
+            uploadPlayerBtn.style.display = "none";
+			
+			// Reset tabs to "Browse" mode using a safe block
+			const tabStorage = document.getElementById('tabStorage');
+			const tabCamera = document.getElementById('tabCamera');
+			const tabContentStorage = document.getElementById('tabContentStorage');
+			const tabContentCamera = document.getElementById('tabContentCamera');
+			if(tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
+				tabStorage.classList.add('active');
+				tabCamera.classList.remove('active');
+				tabContentStorage.style.display = 'block';
+				tabContentCamera.style.display = 'none';
+			}
+
+            console.log("📂 Player image processed and UI updated.");
+        } catch (error) {
+            console.error("❌ Image Processing Failed:", error);
+        } finally {
+            uploadPlayerBtn.textContent = "Upload Player";
+            uploadPlayerBtn.disabled = false;
+        }
+    });
+
 
 
     function savePlayers() {
@@ -751,50 +772,25 @@ function deletePlayer(event) {
 
     // Show a custom confirmation modal
     createDeleteConfirmationModal(playerName, () => {
-        // On Confirm → proceed with your existing delete logic
         console.log(`🗑️ Confirmed deletion of player: ${playerName}`);
 
-        // If this is the original logic:
+        // Only delete if it's not one of the first two "default" players
         if (playerIndex >= 2) {
-            const selectedBeforeDelete = Array.from(document.querySelectorAll('.player-selection'))
-                .map(div => div.getAttribute('data-player-name'));
+            // 1) Remove the player from the array
             players.splice(playerIndex, 1);
             savePlayers();
-            renderPlayers();
-            selectedPlayers = new Set([...selectedPlayers].filter(name => selectedBeforeDelete.includes(name)));
+
+            // 2) Remove the player by name from selectedPlayers
+            selectedPlayers.delete(playerName);
             persistSelectedPlayers();
-            updateSelectionTitle();
-        }
-    });
-}
 
-
-function deletePlayer(event) {
-    event.stopPropagation(); // Prevent click from bubbling further
-
-    // Identify which player index was clicked
-    const playerIndex = parseInt(event.target.getAttribute("data-index"));
-    // Retrieve the player's name from your 'players' array
-    const playerName = players[playerIndex].name;
-
-    // Show a custom confirmation modal
-    createDeleteConfirmationModal(playerName, () => {
-        // On Confirm → proceed with your existing delete logic
-        console.log(`🗑️ Confirmed deletion of player: ${playerName}`);
-
-        if (playerIndex >= 2) {
-            const selectedBeforeDelete = Array.from(document.querySelectorAll('.player-selection'))
-                .map(div => div.getAttribute('data-player-name'));
-
-            players.splice(playerIndex, 1);
-            savePlayers();
+            // 3) Re-render after the data is updated
             renderPlayers();
-
-            selectedPlayers = new Set(
-                [...selectedPlayers].filter(name => selectedBeforeDelete.includes(name))
-            );
-            persistSelectedPlayers();
             updateSelectionTitle();
+
+            console.log("✅ Successfully deleted player:", playerName);
+            console.log("players array is now:", players);
+            console.log("selectedPlayers is now:", Array.from(selectedPlayers));
         }
     });
 }
