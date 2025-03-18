@@ -1,4 +1,4 @@
-/* (function() {
+(function() {
     // Create a debug log container fixed at the top with a semitransparent background.
     const debugLog = document.createElement("div");
     debugLog.id = "debugLog";
@@ -36,7 +36,7 @@
         messageDiv.textContent = message;
         debugLog.appendChild(messageDiv);
     };
-})(); */
+})();
 
 //
 // Global Helper Functions
