@@ -42,6 +42,58 @@
 // Global Helper Functions
 //
 
+/**
+ * Downscale an image to a maximum dimension while preserving aspect ratio.
+ * @param {Blob|File} file - The original image file.
+ * @param {number} maxDimension - The maximum width or height (e.g., 1200).
+ * @returns {Promise<Blob>} - A Promise that resolves to the downscaled JPEG blob.
+ */
+function downscaleImage(file, maxDimension = 1200) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+
+      // Only downscale if the image is bigger than maxDimension in either dimension
+      if (width > maxDimension || height > maxDimension) {
+        const aspectRatio = width / height;
+        if (width > height) {
+          width = maxDimension;
+          height = Math.round(maxDimension / aspectRatio);
+        } else {
+          height = maxDimension;
+          width = Math.round(maxDimension * aspectRatio);
+        }
+      }
+
+      // Draw the scaled image onto a canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert canvas back to a Blob
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Downscale failed: Canvas is empty."));
+          }
+        },
+        "image/jpeg",
+        1.0 // JPEG quality (0.0 to 1.0). Adjust as needed
+      );
+    };
+    img.onerror = (err) => reject(err);
+
+    // Turn your File/Blob into a local URL so <img> can load it
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 // Apply a sharpen filter using a 3x3 convolution kernel that sums to 1
 function applySharpen(imageData) {
     const width = imageData.width, height = imageData.height;
@@ -90,14 +142,22 @@ function processImage(file) {
             canvas.width = img.width;
             canvas.height = img.height;
             const ctx = canvas.getContext("2d");
+
+            // Turn off smoothing and apply CSS filters
             ctx.imageSmoothingEnabled = false;
             ctx.filter = "brightness(105%) contrast(105%) saturate(120%)";
+
+            // White background fill, then draw
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0);
+
+            // Sharpen the result
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const sharpenedData = applySharpen(imageData);
             ctx.putImageData(sharpenedData, 0, 0);
+
+            // Convert final to a Blob
             canvas.toBlob((blob) => {
                 if (blob) {
                     resolve(blob);
@@ -115,14 +175,14 @@ function processImage(file) {
 const SKIP_BG_API = true;
 
 // Remove background using remove.bg API without double-processing
+// Remove background using remove.bg API (no extra image processing here)
 async function removeBackground(file) {
-    console.log("🖼 Sending raw image to remove.bg API...");
+    console.log("🖼 Sending raw (or downscaled) image to remove.bg API...");
     const removeBgApiKey = "XLZeaz7xuaVeVxX8mPnMR7Mw"; // Replace with your API key
     const formData = new FormData();
     formData.append("image_file", file);
     formData.append("size", "auto");
 
-    console.log("🖼 Sending raw image to Remove.bg API...");
     const response = await fetch("https://api.remove.bg/v1.0/removebg", {
         method: "POST",
         headers: { "X-Api-Key": removeBgApiKey },
@@ -188,7 +248,7 @@ async function cropFaceToSquare(imageBlob) {
                 let faceCenterY = minY + faceHeight / 2;
                 faceCenterY -= squareSize * 0.1; // moves the cropping area upward slightly
 
-                // Define square cropping area (expand the frame)
+                // Define square cropping area
                 const cropX = faceCenterX - squareSize / 2;
                 const cropY = faceCenterY - squareSize / 2;
 
@@ -206,7 +266,7 @@ async function cropFaceToSquare(imageBlob) {
                     0, 0, squareSize, squareSize
                 );
 
-                resolve(croppedCanvas.toDataURL("image/png"));
+                resolve(croppedCanvas.toDataURL("image/png")); // final dataURL
             } catch (error) {
                 console.error("❌ Error during FaceMesh processing:", error);
                 resolve(canvas.toDataURL("image/png"));
@@ -218,8 +278,6 @@ async function cropFaceToSquare(imageBlob) {
         img.src = URL.createObjectURL(imageBlob);
     });
 }
-
-
 
 //
 // Main Application Code
@@ -593,7 +651,118 @@ captureInput.addEventListener("change", () => {
     });
 
 // Upload button logic with conditional background removal API call.
-    uploadPlayerBtn.addEventListener("click", async () => {
+
+	// Upload button logic with conditional background removal API call.
+uploadPlayerBtn.addEventListener("click", async () => {
+    uploadPlayerBtn.textContent = "Uploading Player...";
+    uploadPlayerBtn.disabled = true;
+
+    // 1) Unified fallback: either from "playerUpload" (gallery) or "window.capturedFile" (camera).
+    let file = playerUpload.files[0] || window.capturedFile;
+    if (!file) {
+        const errorMessage = isMobileDevice
+            ? "No image selected from gallery or camera."
+            : "No image selected for upload.";
+        displayMessage(errorMessage);
+        console.log("⚠️ Upload Failed - No file selected.");
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+        return;
+    }
+
+    // 2) Validate player name
+    const playerName = playerNameInput.value.trim();
+    console.log("Player name entered:", playerName);
+
+    if (!playerName) {
+        displayMessage("Please enter a player name.");
+        console.log("⚠️ Upload Failed - Missing name.");
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+        return;
+    }
+
+    // 3) Check for duplicates
+    if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
+        displayMessage(`A player named "${playerName}" already exists.`);
+        console.log(`❌ Duplicate name detected: ${playerName}`);
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+        return;
+    }
+
+    try {
+        console.log("✅ Name is unique. Proceeding with image processing...");
+        console.log("🛠 File Details:", file);
+
+        // 4) Downscale the image if it's too large (e.g., max 1200px)
+        console.log("📐 Downscaling image if necessary...");
+        const downscaledBlob = await downscaleImage(file, 1200);
+
+        // 5) Conditionally remove background
+        let bgBlob;
+        if (!SKIP_BG_API) {
+            console.log("🎨 Removing Background via remove.bg...");
+            bgBlob = await removeBackground(downscaledBlob);
+        } else {
+            console.log("😊 Skipping background removal API.");
+            bgBlob = downscaledBlob;
+        }
+
+        // 6) Apply brightness/contrast/saturate/sharpen (single pass)
+        console.log("🛠 Applying filters and sharpening...");
+        const processedBlob = await processImage(bgBlob);
+
+        // 7) Face crop
+        console.log("🔵 Applying Face Cropping...");
+        const finalImage = await cropFaceToSquare(processedBlob);
+
+        // 8) Add new player and update UI
+        players.push({ name: playerName, image: finalImage });
+        savePlayers();
+        renderPlayers();
+        console.log(`✅ New Player Added: ${playerName}`);
+
+        // 9) Reset UI
+        newPlayerContainer.style.display = "none";
+        if (fileNameDisplay && fileLabel) {
+            fileNameDisplay.textContent = "";
+            fileNameDisplay.style.display = "none";
+            fileLabel.style.display = "inline";
+        }
+        const imagePreview = document.getElementById("imagePreview");
+        if (imagePreview) imagePreview.remove();
+        const photoConfirm = document.getElementById("photoConfirmMessage");
+        if (photoConfirm) photoConfirm.remove();
+        const previewContainer = document.getElementById("previewContainer");
+        if (previewContainer) previewContainer.remove();
+        playerNameInput.value = "";
+        playerNameInput.style.display = "none";
+        uploadPlayerBtn.style.display = "none";
+
+        // 10) Reset tabs to "Browse" mode using a safe block
+        const tabStorage = document.getElementById('tabStorage');
+        const tabCamera = document.getElementById('tabCamera');
+        const tabContentStorage = document.getElementById('tabContentStorage');
+        const tabContentCamera = document.getElementById('tabContentCamera');
+        if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
+            tabStorage.classList.add('active');
+            tabCamera.classList.remove('active');
+            tabContentStorage.style.display = 'block';
+            tabContentCamera.style.display = 'none';
+        }
+
+        console.log("📂 Player image processed and UI updated.");
+    } catch (error) {
+        console.error("❌ Image Processing Failed:", error);
+    } finally {
+        uploadPlayerBtn.textContent = "Upload Player";
+        uploadPlayerBtn.disabled = false;
+    }
+});
+
+	/* OLD VERSION */
+    /* uploadPlayerBtn.addEventListener("click", async () => {
         uploadPlayerBtn.textContent = "Uploading Player...";
         uploadPlayerBtn.disabled = true;
 
@@ -694,7 +863,9 @@ captureInput.addEventListener("change", () => {
             uploadPlayerBtn.textContent = "Upload Player";
             uploadPlayerBtn.disabled = false;
         }
-    });
+    }); */
+	
+	
 
 
 
