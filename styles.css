@@ -92,6 +92,9 @@ h1 {
     transition: border 0.3s;
     border-radius: 8px;	
 	border: 2px solid #007BFF80;
+	display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .player-selection:hover {
@@ -157,7 +160,23 @@ h1 {
 	margin-bottom: 10px;
 	padding: 0 40px 0 40px;
 	line-height: 25px;
+	word-wrap: break-word;
 }
+
+.editable-text {
+    cursor: text;
+	padding: 7px 10px;
+	width: fit-content;
+}
+.editable-text:hover {
+	background: #c9c9c9
+}
+
+.editable-text input {
+    box-sizing: border-box;
+	padding: 7px 10px;
+}
+
 
 /* Button styling */
 button {

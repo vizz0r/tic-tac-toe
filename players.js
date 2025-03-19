@@ -1,4 +1,4 @@
-(function() {
+/* (function() {
     // Create a debug log container fixed at the top with a semitransparent background.
     const debugLog = document.createElement("div");
     debugLog.id = "debugLog";
@@ -36,7 +36,7 @@
         messageDiv.textContent = message;
         debugLog.appendChild(messageDiv);
     };
-})();
+})(); */
 
 //
 // Global Helper Functions
@@ -84,7 +84,7 @@ function downscaleImage(file, maxDimension = 1200) {
           }
         },
         "image/jpeg",
-        1.0 // JPEG quality (0.0 to 1.0). Adjust as needed
+        0.95 // JPEG quality (0.0 to 1.0). Adjust as needed
       );
     };
     img.onerror = (err) => reject(err);
@@ -168,7 +168,7 @@ function processImage(file) {
                 } else {
                     reject(new Error("Processing image failed."));
                 }
-            }, "image/jpeg", 1.0);
+            }, "image/jpeg", 1.00);
         };
         img.onerror = (error) => reject(error);
         img.src = URL.createObjectURL(file);
@@ -179,7 +179,6 @@ function processImage(file) {
 const SKIP_BG_API = true;
 
 // Remove background using remove.bg API without double-processing
-// Remove background using remove.bg API (no extra image processing here)
 async function removeBackground(file) {
     console.log("🖼 Sending raw (or downscaled) image to remove.bg API...");
     const removeBgApiKey = "XLZeaz7xuaVeVxX8mPnMR7Mw"; // Replace with your API key
@@ -270,10 +269,11 @@ async function cropFaceToSquare(imageBlob) {
                     0, 0, squareSize, squareSize
                 );
 
-                resolve(croppedCanvas.toDataURL("image/png")); // final dataURL
+                //resolve(croppedCanvas.toDataURL("image/png")); // final dataURL
+                resolve(croppedCanvas.toDataURL("image/jpeg", 0.95)); // final dataURL
             } catch (error) {
                 console.error("❌ Error during FaceMesh processing:", error);
-                resolve(canvas.toDataURL("image/png"));
+                resolve(canvas.toDataURL("image/jpeg", 0.95));
             }
         };
         img.onerror = (error) => {
@@ -302,6 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+	
 
     // Detect mobile
     const isMobileDevice = /Mobi|Android|iPhone/i.test(navigator.userAgent);
@@ -634,27 +635,40 @@ captureInput.addEventListener("change", () => {
     persistSelectedPlayers();
     console.log("✅ Players selected after load:", Array.from(selectedPlayers));
 
-    uploadedPlayersContainer.addEventListener('click', (event) => {
-        if (event.target.closest('.delete-player-btn')) {
-            deletePlayer(event);
-            return;
-        }
-        const playerDiv = event.target.closest('.player-selection');
-        if (playerDiv) {
-            if (playerDiv.classList.contains('add-new')) {
-                if (newPlayerContainer && (newPlayerContainer.style.display === "none" || newPlayerContainer.style.display === "")) {
-                    newPlayerContainer.style.display = "inline-flex";
-                    newPlayerContainer.style.flexDirection = "column";
-                    console.log("New player form displayed.");
-                }
-            } else {
-                const playerName = playerDiv.getAttribute('data-player-name');
-                handlePlayerSelection(playerName);
-            }
-        }
-    });
+uploadedPlayersContainer.addEventListener('click', (event) => {
+	// ✅ Skip if clicking inside the editing <input>
+    if (event.target.closest('input')) {
+        console.log('✏ Clicked inside editing input - skip player selection');
+        return;
+    }
+	
+    if (event.target.closest('.delete-player-btn')) {
+        deletePlayer(event);
+        return;
+    }
 
-// Upload button logic with conditional background removal API call.
+    // ✅ Prevent selection if editing player name
+    if (event.target.closest('.editable-text')) {
+        console.log('✏ Editing mode - skip player select');
+        return;
+    }
+
+    const playerDiv = event.target.closest('.player-selection');
+    if (playerDiv) {
+        if (playerDiv.classList.contains('add-new')) {
+            if (newPlayerContainer && (newPlayerContainer.style.display === "none" || newPlayerContainer.style.display === "")) {
+                newPlayerContainer.style.display = "inline-flex";
+                newPlayerContainer.style.flexDirection = "column";
+                console.log("New player form displayed.");
+            }
+        } else {
+            const playerName = playerDiv.getAttribute('data-player-name');
+            handlePlayerSelection(playerName);
+        }
+    }
+});
+
+
 
 	// Upload button logic with conditional background removal API call.
 uploadPlayerBtn.addEventListener("click", async () => {
@@ -765,113 +779,6 @@ uploadPlayerBtn.addEventListener("click", async () => {
     }
 });
 
-	/* OLD VERSION */
-    /* uploadPlayerBtn.addEventListener("click", async () => {
-        uploadPlayerBtn.textContent = "Uploading Player...";
-        uploadPlayerBtn.disabled = true;
-
-        // Unified fallback: either from "playerUpload" (gallery) or "window.capturedFile" (camera).
-        let file = playerUpload.files[0] || window.capturedFile;
-        //console.log("Using fallback file reference:", file);
-
-        if (!file) {
-            const errorMessage = isMobileDevice
-                ? "No image selected from gallery or camera."
-                : "No image selected for upload.";
-            displayMessage(errorMessage);
-            console.log("⚠️ Upload Failed - No file selected.");
-            uploadPlayerBtn.textContent = "Upload Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-
-        const playerName = playerNameInput.value.trim();
-        console.log("Player name entered:", playerName);
-
-        if (!playerName) {
-            displayMessage("Please enter a player name.");
-            console.log("⚠️ Upload Failed - Missing name.");
-            uploadPlayerBtn.textContent = "Upload Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-
-        if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
-            displayMessage(`A player named "${playerName}" already exists.`);
-            console.log(`❌ Duplicate name detected: ${playerName}`);
-            uploadPlayerBtn.textContent = "Upload Player";
-            uploadPlayerBtn.disabled = false;
-            return;
-        }
-
-        try {
-            console.log("✅ Name is unique. Proceeding with image processing...");
-            console.log("🛠 File Details:", file);
-
-            // Process the image (apply brightness, contrast, saturation, and sharpen)
-            const processedBlob = await processImage(file);
-
-            // Conditionally skip the background removal API
-            let finalBlob;
-            if (SKIP_BG_API) {
-                console.log("😊 Skipping background removal API. Using processed image for further manipulation.");
-                finalBlob = processedBlob;
-            } else {
-                console.log("🎨 Removing Background via API...");
-                finalBlob = await removeBackground(processedBlob);
-            }
-
-            // Continue with face cropping (and any other image manipulation)
-            console.log("🔵 Applying Face Cropping...");
-            const finalImage = await cropFaceToSquare(finalBlob);
-
-            // Add new player and update UI
-            players.push({ name: playerName, image: finalImage });
-            savePlayers();
-            renderPlayers();
-            console.log(`✅ New Player Added: ${playerName}`);
-
-            // Reset UI
-            newPlayerContainer.style.display = "none";
-            if (fileNameDisplay && fileLabel) {
-                fileNameDisplay.textContent = "";
-                fileNameDisplay.style.display = "none";
-                fileLabel.style.display = "inline";
-            }
-            const imagePreview = document.getElementById("imagePreview");
-            if (imagePreview) imagePreview.remove();
-            const photoConfirm = document.getElementById("photoConfirmMessage");
-            if (photoConfirm) photoConfirm.remove();
-			const previewContainer = document.getElementById("previewContainer");
-			if (previewContainer) previewContainer.remove();
-            playerNameInput.value = "";
-            playerNameInput.style.display = "none";
-            uploadPlayerBtn.style.display = "none";
-			
-			// Reset tabs to "Browse" mode using a safe block
-			const tabStorage = document.getElementById('tabStorage');
-			const tabCamera = document.getElementById('tabCamera');
-			const tabContentStorage = document.getElementById('tabContentStorage');
-			const tabContentCamera = document.getElementById('tabContentCamera');
-			if(tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
-				tabStorage.classList.add('active');
-				tabCamera.classList.remove('active');
-				tabContentStorage.style.display = 'block';
-				tabContentCamera.style.display = 'none';
-			}
-
-            console.log("📂 Player image processed and UI updated.");
-        } catch (error) {
-            console.error("❌ Image Processing Failed:", error);
-        } finally {
-            uploadPlayerBtn.textContent = "Upload Player";
-            uploadPlayerBtn.disabled = false;
-        }
-    }); */
-	
-	
-
-
 
     function savePlayers() {
         localStorage.setItem('players', JSON.stringify(players));
@@ -889,7 +796,7 @@ uploadPlayerBtn.addEventListener("click", async () => {
             uploadedPlayersContainer.innerHTML += `
                 <div class="player-selection ${isSelected ? 'selected' : ''} ${isNewPlayer ? 'new-player' : ''}" data-player-name="${p.name}">
                     ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
-                    <span class="player-name">${p.name}</span>
+                    <span class="player-name editable-text">${p.name}</span>
                     <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img">
                     ${isSelected ? `<div class="selected-tag">Selected</div>` : ""}
                 </div>
@@ -904,6 +811,10 @@ uploadPlayerBtn.addEventListener("click", async () => {
             </div>
         `;
         updateSelectionTitle();
+		
+		// ✅ Bind the editable logic to the freshly rendered spans
+		uploadedPlayersContainer.querySelectorAll('.editable-text').forEach(makeSpanEditable);
+
     }
 
     function handlePlayerSelection(playerName) {
@@ -1017,6 +928,84 @@ function createDeleteConfirmationModal(playerName, onConfirm) {
     // Add to DOM
     document.body.appendChild(overlay);
 }
+	
+	//Click to edit any player name
+function makeSpanEditable(span) {
+    span.addEventListener('click', function handler(e) {
+        e.stopPropagation();
+
+        const currentText = span.textContent.trim();
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentText;
+        input.className = 'player-name';
+		input.style.display = 'inline-block';
+		input.style.width = `${Math.max(currentText.length, 5)}ch`; // fallback minimum 5ch
+		input.style.fontSize = '18px';
+		input.style.fontWeight = 'bold';
+        input.style.fontSize = '18px';
+        input.style.fontWeight = 'bold';
+        input.style.marginBottom = '10px';
+        input.style.marginTop = '10px';
+        input.style.paddingTop = '6px';
+        input.style.paddingBottom = '6px';
+
+        span.replaceWith(input);
+        input.focus();
+        input.select();
+
+        let isSaving = false;
+
+        // 👇 Prevent blur if the click is inside the input itself
+        input.addEventListener('mousedown', function (event) {
+            event.stopPropagation();
+        });
+
+		function save() {
+			if (isSaving) return;
+			isSaving = true;
+
+			const newName = input.value.trim() || 'Unnamed';
+
+			const playerCard = input.closest('.player-selection');
+			const oldName = playerCard.getAttribute('data-player-name');
+			playerCard.setAttribute('data-player-name', newName);
+
+			// ✅ Update player in the players[] array
+			const player = players.find(p => p.name === oldName);
+			if (player) {
+				player.name = newName;
+				console.log(`💾 Player name updated: ${oldName} ➔ ${newName}`);
+			}
+
+			// ✅ Update selectedPlayers Set if needed
+			if (selectedPlayers.has(oldName)) {
+				selectedPlayers.delete(oldName);
+				selectedPlayers.add(newName);
+				console.log(`🔄 Updated selection from "${oldName}" to "${newName}"`);
+			}
+
+			savePlayers();
+			persistSelectedPlayers();
+
+			const newSpan = document.createElement('span');
+			newSpan.className = span.className;
+			newSpan.textContent = newName;
+			input.replaceWith(newSpan);
+			makeSpanEditable(newSpan);
+		}
+
+
+        // 👇 `mousedown` will protect from premature blur
+        input.addEventListener('blur', () => setTimeout(save, 100));
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') save();
+        });
+
+        span.removeEventListener('click', handler);
+    });
+}
+
 
 
     startGameBtn.addEventListener('click', () => {
