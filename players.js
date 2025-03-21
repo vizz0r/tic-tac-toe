@@ -894,7 +894,7 @@ function renderPlayers() {
               : `<span class="player-name editable-text">${p.name}</span>`
             }
 
-            ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
+            ${index >= 2 ? `<button title="Delete player" class="delete-player-btn" data-index="${index}">❌</button>` : ""}
             ${isSelected ? `<div class="selected-tag">SELECTED</div>` : ""}
           </div>
         `;
