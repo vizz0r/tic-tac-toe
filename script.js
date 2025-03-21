@@ -11,6 +11,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const gameScore = document.getElementById('gameScore');
     const confetti = document.querySelector('.confetti-wrapper');
 
+	let isMuted = JSON.parse(localStorage.getItem('isMuted')) || false;
+	const muteBtn = document.getElementById('muteBtn');
+
+	muteBtn.addEventListener('click', () => {
+		isMuted = !isMuted;
+		localStorage.setItem('isMuted', JSON.stringify(isMuted));
+		updateMuteIcon();
+
+		// 🚫 Stop any sound immediately when muting
+		if (isMuted && currentSound) {
+			currentSound.pause();
+			currentSound.currentTime = 0;
+			currentSound = null;
+		}
+	});
+
+	// ✅ Helper to update icon based on state
+	function updateMuteIcon() {
+		muteBtn.textContent = isMuted ? '🔇' : '🔊';
+	}
+
+
     let currentPlayer;
     let gameActive = false;
     let gameState = ["", "", "", "", "", "", "", "", ""];
@@ -132,14 +154,17 @@ if (!playerO) console.warn(`Player O "${selectedPlayers.player2}" not found!`);
 
     // ✅ Play sound helper: stops any currently playing sound before playing a new one.
     let currentSound = null;
-    function playSound(soundFile) {
-        if (currentSound) {
-            currentSound.pause();
-            currentSound.currentTime = 0;
-        }
-        currentSound = new Audio(soundFile);
-        currentSound.play();
-    }
+	function playSound(soundFile) {
+		if (isMuted) return;  // Respect mute state from storage
+		if (currentSound) {
+			currentSound.pause();
+			currentSound.currentTime = 0;
+		}
+		currentSound = new Audio(soundFile);
+		currentSound.play();
+	}
+
+
 
     function handleCellClick(clickedCellEvent) {
         if (!gameActive) return;
@@ -331,6 +356,9 @@ if (isNewPlayer) {
     restartBtn.addEventListener('click', () => restartGame(true));
     resetScoreBtn.addEventListener('click', resetScore);
     cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+
+    // ✅ Initialize the icon when the page loads
+    updateMuteIcon();
 
     // Start the game (initial load, no sound)
     restartGame(false);
