@@ -375,11 +375,11 @@ function updateUIAfterImageSelection(imageSrc, fromCamera) {
     const confirmMsg = document.createElement("div");
     confirmMsg.id = "photoConfirmMessage";
     confirmMsg.style.marginBottom = "5px";
-    confirmMsg.style.fontWeight = "bold";
+    confirmMsg.style.fontWeight = "500";
     confirmMsg.style.color = "green";
     confirmMsg.textContent = fromCamera
-        ? "Photo taken and attached for preview"
-        : "File attached for preview";
+        ? "🖼️ Photo taken and attached for preview"
+        : "🖼️ File attached for preview";
 
     // Create the main preview container (flex row)
     const previewContainer = document.createElement("div");
@@ -485,6 +485,14 @@ if (playerUpload) {
     playerUpload.addEventListener('change', () => {
         const file = playerUpload.files[0];
         if (file) {
+			// ✅ Validate that it's an image
+            if (!file.type.startsWith('image/')) {
+                console.warn("🚫 Selected file is not an image:", file.type);
+                displayMessage("Please select a valid image format (JPG, PNG, etc)");
+                playerUpload.value = ""; // Reset the input
+                return;
+            }
+			
             console.log("🖼️ File selected from gallery. Attaching preview...");
             const imageSrc = URL.createObjectURL(file);
 
@@ -1022,7 +1030,7 @@ function createDeleteConfirmationModal(playerName, onConfirm) {
 
     // Modal text
     const message = document.createElement("p");
-    message.textContent = `Are you sure that you want to delete player "${playerName}"?`;
+    message.innerHTML = `Do you want to delete player <span class="bold">'${playerName}'</span>?`;
 
     // Container for buttons
     const btnContainer = document.createElement("div");
@@ -1030,7 +1038,7 @@ function createDeleteConfirmationModal(playerName, onConfirm) {
 
     // Confirm button
     const confirmBtn = document.createElement("button");
-    confirmBtn.textContent = "Confirm";
+    confirmBtn.textContent = "Delete";
     confirmBtn.classList.add("confirm-delete-btn");
     confirmBtn.addEventListener("click", () => {
         document.body.removeChild(overlay); // Close modal

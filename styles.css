@@ -1,6 +1,6 @@
 /* General Styles */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Roboto', sans-serif;
     text-align: center;
     background-color: #f2f2f2;
 	margin: 0; 
@@ -55,10 +55,10 @@ h1 {
 
 .spinner {
     display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    border-top-color: white;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    border-top-color: #000;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     vertical-align: middle;
@@ -105,6 +105,20 @@ h1 {
 
 .delete-player-btn:hover {
 	background: rgb(0 0 0 / 10%);
+}
+
+#browseButton, #uploadPlayerBtn {
+	background: #e5e5e5;
+	color: #333;
+    border: 1px solid #ccc;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+#browseButton:hover, #uploadPlayerBtn:hover {
+	filter: brightness(95%);
 }
 
 /* Player card */
@@ -193,6 +207,11 @@ h1 {
 	width: 95%;
 	word-wrap: break-word;
 }
+
+.bold {
+	font-weight: 700;
+}
+	
 
 .editable-text {
     cursor: text;
@@ -290,12 +309,12 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
     padding: 10px 20px;
     border: none;
     background: transparent;
-    color: #333;
+    color: #666;
     font-size: 16px;
+	font-weight: 600;
     cursor: pointer;
     flex: 1;
     text-align: center;
-    font-weight: bold;
     transition: background 0.3s, color 0.3s, box-shadow 0.3s;
     border-radius: 8px;
 	width: 162px;
@@ -338,6 +357,7 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 
 #newPlayerContainer button {
 	width: fit-content;
+	font-weight: 500;
 }
 
 #browse {
@@ -384,6 +404,7 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 
 #photoConfirmMessage {
 	margin: 10px 0 !important;
+	letter-spacing: 0.5px;
 }
 
 #deletePreviewBtn {
@@ -558,12 +579,12 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 
 /* ✅ Status Display */
 #status {
-    margin: 15px 10px 0;
+    margin: 15px 0 0 0;
     font-size: 30px;
     padding: 10px 12px;
     display: inline-flex;
     border-radius: 5px;
-	font-weight: 600;
+	font-weight: 500;
 }
 
 .draw {
@@ -796,6 +817,7 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
   margin-bottom: 15px;
   margin-bottom: 20px;
   font-size: 16px;
+  line-height: 25px;
   color: #333;
 }
 
@@ -811,10 +833,10 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
   background: #d9534f; /* Red button */
   color: #fff;
   border: none;
-  padding: 10px 20px;
+  padding: 10px 14px;
   cursor: pointer;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .confirm-delete-btn:hover {
@@ -823,13 +845,13 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 
 /* Cancel Button */
 .cancel-delete-btn {
-  background: transparent;
-  color: #333;
-  border: 2px solid #ccc;
-  padding: 10px 20px;
+	background: transparent;
+	color: #333;
+    border: 1px solid #ccc;
+    padding: 10px 14px;
   cursor: pointer;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .cancel-delete-btn:hover {
