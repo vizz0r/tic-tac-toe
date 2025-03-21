@@ -889,6 +889,14 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 	border-bottom-right-radius: 4px !important;
 }
 
+#muteBtn:has(+ #resetScoreBtn.show) {
+	margin-right: 0;
+}
+
+#muteBtn:has(+ #resetScoreBtn) {
+	margin-right: 6px;
+}
+
 #header-buttons {
 	display: flex;
 	justify-content: space-between;
