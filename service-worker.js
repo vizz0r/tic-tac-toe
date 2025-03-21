@@ -22,6 +22,12 @@ self.addEventListener('install', event => {
 
 // ✅ Fetch event: Try the network first, then fallback to cache
 self.addEventListener('fetch', event => {
+	if (!event.request.url.startsWith('http')) {
+        // 🔥 Skip non-HTTP(s) requests like chrome-extension://
+        return;
+    }
+
+	
     event.respondWith(
         fetch(event.request)
             .then(response => {
