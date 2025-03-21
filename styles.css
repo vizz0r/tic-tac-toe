@@ -555,7 +555,7 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
     background-color: #ddd;
     color: #5e5e5e;
     border: none;
-	position: absolute;
+	/* position: absolute; */
 	top: 0; 
 	right: 0;
 	border-radius: 0 !important;
@@ -567,12 +567,14 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 	display: none;
 	right: 0;
 	border-bottom-left-radius: 7px !important;
+	order: 3;
 }
 
 #choosePlayersBtn {
 	left: 0;
 	border-bottom-right-radius: 7px !important;
 	width: fit-content;
+	order: 1;
 }
 
 #resetScoreBtn:hover, #choosePlayersBtn:hover {
@@ -861,23 +863,34 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 }
 
 #muteBtn {
-    position: absolute;
+    /* position: absolute; */
 	padding: 3px 5px;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    /* top: 0; */
+    /* left: 50%; */
+    /* transform: translateX(-50%); */
     background: transparent;
     border: none;
 	border-bottom-left-radius: 4px;
 	border-bottom-right-radius: 4px;
     font-size: 28px;
     cursor: pointer;
-    z-index: 1000;
     transition: background 0.3s ease;
+	order: 2;
 }
 
 #muteBtn:hover {
     background: rgba(0, 0, 0, 0.1); /* 10% black background on hover */
+}
+
+#header-buttons {
+	display: flex;
+	justify-content: space-between;
+	margin: 0;
+	padding: 0;
+	margin-top: -20px;
+	margin-left: -20px;
+	margin-right: -20px;
+	
 }
 
 
