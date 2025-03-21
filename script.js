@@ -15,46 +15,88 @@ document.addEventListener('DOMContentLoaded', () => {
     let gameActive = false;
     let gameState = ["", "", "", "", "", "", "", "", ""];
 
-    // ✅ Ensure selected players are loaded
-    let selectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers')) || { player1: 'Alex', player2: 'Martin' };
+// Load from localStorage or initialize default selection by IDs
+let selectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers')) || { 
+    player1: 'player1',  // Reference the ID
+    player2: 'player2'
+};
+
+// ✅ MIGRATION: If the old name-based format is detected, reset to ID-based
+if (!selectedPlayers.player1.startsWith('player')) {
+    console.warn("🚨 Old selectedPlayers format detected, migrating to ID-based selection.");
+    selectedPlayers = { player1: 'player1', player2: 'player2' };
+    localStorage.setItem('selectedPlayers', JSON.stringify(selectedPlayers));
+}
+
+
+// Load players from localStorage or default
+let players = JSON.parse(localStorage.getItem('players')) || [
+    { id: 'player1', name: 'Alex', image: 'images/playerX.png', isDefault: true },
+    { id: 'player2', name: 'Martin', image: 'images/playerO.png', isDefault: true }
+];
+
+// Find selected player objects
+let playerX = players.find(p => p.id === selectedPlayers.player1);
+let playerO = players.find(p => p.id === selectedPlayers.player2);
 
     // NEW LOGIC: Build current match identifier and check if it has changed.
     const currentMatch = `${selectedPlayers.player1}-${selectedPlayers.player2}`;
     const lastMatch = localStorage.getItem("lastMatch");
-    if (lastMatch !== currentMatch) {
-        // Reset scores for the new match combination.
-        localStorage.setItem(`score_${selectedPlayers.player1}`, 0);
-        localStorage.setItem(`score_${selectedPlayers.player2}`, 0);
-        localStorage.setItem("lastMatch", currentMatch);
-        console.log("New match combination detected. Scores reset.");
-    }
+if (lastMatch !== currentMatch) {
+    localStorage.setItem(`score_${playerX.id}`, 0);
+    localStorage.setItem(`score_${playerO.id}`, 0);
+    localStorage.setItem("lastMatch", currentMatch);
+    console.log("New match combination detected. Scores reset.");
+}
+
 
     // ✅ Fetch correct scores from localStorage using player names
-    let playerXScore = parseInt(localStorage.getItem(`score_${selectedPlayers.player1}`)) || 0;
-    let playerOScore = parseInt(localStorage.getItem(`score_${selectedPlayers.player2}`)) || 0;
+let playerXScore = parseInt(localStorage.getItem(`score_${playerX.id}`)) || 0;
+let playerOScore = parseInt(localStorage.getItem(`score_${playerO.id}`)) || 0;
+
 
     console.log("Loaded Scores from localStorage:", playerXScore, playerOScore);
 
     // ✅ Update UI with correct scores after a brief delay
     setTimeout(() => {
-        document.getElementById("playerXName").innerHTML = `${selectedPlayers.player1} (<span id="playerXScore">${playerXScore}</span>)`;
-        document.getElementById("playerOName").innerHTML = `${selectedPlayers.player2} (<span id="playerOScore">${playerOScore}</span>)`;
+		document.getElementById("playerXName").innerHTML = `${playerXName} (<span id="playerXScore">${playerXScore}</span>)`;
+		document.getElementById("playerOName").innerHTML = `${playerOName} (<span id="playerOScore">${playerOScore}</span>)`;
     }, 100);
+	
+	updateScoreTitle();
 
-    let players = JSON.parse(localStorage.getItem('players')) || [
-        { name: 'Alex', image: 'images/playerX.png' },
-        { name: 'Martin', image: 'images/playerO.png' }
-    ];
 
-    // ✅ Find the selected players
-    let playerX = players.find(p => p.name === selectedPlayers.player1) || { name: 'Alex', image: 'playerX.png' };
-    let playerO = players.find(p => p.name === selectedPlayers.player2) || { name: 'Martin', image: 'playerO.png' };
+// ✅ Patch any missing isDefault
+players = players.map(p => {
+    if (p.name === 'Alex' || p.name === 'Martin') {
+        return { ...p, isDefault: true };
+    }
+    return { ...p, isDefault: p.isDefault ?? false };
+});
+
+
+
+// ✅ SAFETY CHECK - Add your warning here
+if (!playerX) console.warn(`Player X "${selectedPlayers.player1}" not found!`);
+if (!playerO) console.warn(`Player O "${selectedPlayers.player2}" not found!`);
+
+
 
     // ✅ Use these players in the game logic
     const playerXName = playerX.name;
     const playerOName = playerO.name;
     const playerXSrc = playerX.image;
     const playerOSrc = playerO.image;
+	console.log("Player X:", playerX);
+	console.log("Player O:", playerO);
+	
+	function updateScoreTitle() {
+    const scoreTitle = document.getElementById('score-title');
+		if (scoreTitle) {
+			scoreTitle.textContent = `${playerXName} (${playerXScore}) v ${playerOName} (${playerOScore})`;
+		}
+	}
+
 
     // ✅ Function to update the Reset Score button visibility
     function updateResetScoreButton() {
@@ -118,20 +160,22 @@ function updateCell(cell, index) {
     gameState[index] = currentPlayer;
 
     // Create player image
-    const img = document.createElement("img");
-    img.src = currentPlayer === "X" ? playerXSrc : playerOSrc;
-    img.alt = currentPlayer === "X" ? playerXName : playerOName;
+const img = document.createElement("img");
+img.src = currentPlayer === "X" ? playerXSrc : playerOSrc;
+img.alt = currentPlayer === "X" ? playerXName : playerOName;
+img.onerror = () => img.src = 'images/default-avatar.png';  // ✅ fallback if broken
+
 
     // ✅ Define the default players
     const defaultPlayers = ["Alex", "Martin"];
 
     // ✅ Check if the current player is NOT a default player
-    let isNewPlayer = !defaultPlayers.includes(currentPlayer === "X" ? playerXName : playerOName);
+let isNewPlayer = currentPlayer === "X" ? !playerX?.isDefault : !playerO?.isDefault;
 
     // ✅ Apply "new-player" class ONLY to newly added players
-    if (isNewPlayer) {
-        img.classList.add("new-player");
-    }
+if (isNewPlayer) {
+    img.classList.add("new-player");
+}
 
     // Append the image inside the cell
     cell.appendChild(img);
@@ -181,19 +225,23 @@ function updateCell(cell, index) {
             }
             gameActive = false;
             // Retrieve both scores BEFORE updating to prevent overwriting issues
-            let storedXScore = parseInt(localStorage.getItem(`score_${playerXName}`)) || 0;
-            let storedOScore = parseInt(localStorage.getItem(`score_${playerOName}`)) || 0;
+			let storedXScore = parseInt(localStorage.getItem(`score_${playerX.id}`)) || 0;
+			let storedOScore = parseInt(localStorage.getItem(`score_${playerO.id}`)) || 0;
             console.log(`Before update - X: ${storedXScore}, O: ${storedOScore}`);
-            if (currentPlayer === "X") {
-                storedXScore++;
-                localStorage.setItem(`score_${playerXName}`, storedXScore);
-            } else {
-                storedOScore++;
-                localStorage.setItem(`score_${playerOName}`, storedOScore);
-            }
+			if (currentPlayer === "X") {
+				storedXScore++;
+				localStorage.setItem(`score_${playerX.id}`, storedXScore);
+			} else {
+				storedOScore++;
+				localStorage.setItem(`score_${playerO.id}`, storedOScore);
+			}
+
             document.getElementById("playerXScore").textContent = storedXScore;
             document.getElementById("playerOScore").textContent = storedOScore;
             console.log(`After update - X: ${storedXScore}, O: ${storedOScore}`);
+			
+			updateScoreTitle();
+			
             winningCells.forEach(cell => cell.classList.add("winning-cell"));
             cells.forEach(cell => {
                 if (!winningCells.includes(cell)) {
@@ -264,19 +312,20 @@ function updateCell(cell, index) {
     // ✅ Reset score when "Reset Score" button is clicked
     function resetScore() {
         // Clear scores in localStorage
-        localStorage.removeItem(`score_${playerXName}`);
-        localStorage.removeItem(`score_${playerOName}`);
+		localStorage.removeItem(`score_${playerX.id}`);
+		localStorage.removeItem(`score_${playerO.id}`);
         // Reset scores in memory
         playerXScore = 0;
         playerOScore = 0;
         // Update localStorage and UI
-        localStorage.setItem(`score_${playerXName}`, 0);
-        localStorage.setItem(`score_${playerOName}`, 0);
+		localStorage.setItem(`score_${playerX.id}`, 0);
+		localStorage.setItem(`score_${playerO.id}`, 0);
         document.getElementById("playerXScore").textContent = "0";
         document.getElementById("playerOScore").textContent = "0";
         console.log("Scores reset successfully.");
         updateResetScoreButton();
         restartGame(true);
+		updateScoreTitle();
     }
 
     restartBtn.addEventListener('click', () => restartGame(true));

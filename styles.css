@@ -15,7 +15,7 @@ h1 {
 }
 
 #gameTitle {
-	padding-top: 30px;
+	padding-top: 40px;
 	padding-bottom: 0px;
 	font-weight: 400;
 	font-size: 22px;
@@ -25,11 +25,12 @@ h1 {
 
 #gameScore {
 	padding-top: 10px;
-	padding-bottom: 25px;
+	padding-bottom: 20px;
 }
 
 #selection-title {
-	padding-top: 20px;
+	padding-top: 10px;
+	padding-bottom: 10px;
 	position: sticky;
     top: 0;
     background: #f2f2f2; /* match your body background */
@@ -37,7 +38,7 @@ h1 {
 }
 
 .drop-shadow {
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   margin: 0 -20px;
 }
 	
@@ -45,11 +46,29 @@ h1 {
 /* Grid layout for players */
 #uploaded-players {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, auto));
+    /* grid-template-columns: repeat(auto-fit, minmax(150px, auto)); */
+    grid-template-columns: repeat(auto-fit, 160px);
     gap: 20px;
     margin-top: 10px;
     justify-content: center;
 }
+
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 /* Message container */
 #message-container {
 	position: fixed;
@@ -62,31 +81,36 @@ h1 {
     border-top: 1px solid #ffc107;
     background-color: #fff3cd;
     color: #856404;
-    font-size: 16px;
+    font-size: 20px;
+	line-height: 25px;
     display: none; /* Hidden by default */
 }
 
 /* Delete button in player card */
 .delete-player-btn {
 	margin: 0;
-    position: absolute;
+	position: absolute;
     top: 0px;
     right: 0px;
+	padding: 4px 10px;
     border: none;
     cursor: pointer;
     font-size: 25px;
 	background: transparent;
 	color: red;
+	border-radius: 0;
+	border-bottom-left-radius: 5px;
+	
 }
 
 .delete-player-btn:hover {
-	background: #cbcbcb;
+	background: rgb(0 0 0 / 10%);
 }
 
 /* Player card */
 .player-selection {
     position: relative;
-        padding: 5px 15px 35px 15px;
+	padding: 20px 10px 10px 10px;
     border: 2px solid transparent;
 	background-color: #f2f2f2;
     transition: border 0.3s;
@@ -97,15 +121,20 @@ h1 {
     align-items: center;
 }
 
+.player-selection .player-img {
+	margin-bottom: 5px;
+}
+
 .player-selection:hover {
-	background: #e1e1e1;
+	/* background: #e1e1e1; */
 	cursor: pointer;
+    box-shadow: 0 0 18px rgb(36 89 145 / 35%);
 }
 
 /* Selected player card styling */
 .player-selection.selected {
     border: 2px solid #007BFF;
-    box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+	padding-bottom: 35px;
 }
 
 /* Selected tag at the bottom of the card */
@@ -118,8 +147,8 @@ h1 {
     position: absolute;
     bottom: 0;
     left: 0;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
 }
 
 /* New Add New Player Card Styling */
@@ -129,54 +158,63 @@ h1 {
     justify-content: center;
     width: auto;
     padding: 15px;
-    border: 2px dashed #007BFF;
+    border: 2px dashed #007BFF80;
     border-radius: 8px;
-    background-color: #fff;
+    background-color: #f2f2f2;
     cursor: pointer;
-    text-align: center;
 	user-select: none;
 }
-.player-selection.add-new:hover {
-	background: #e1e1e1;
-}
+
 .player-selection.add-new .plus-icon {
     font-size: 48px;
     display: block;
+	color: #007BFF90;
 }
 .player-selection.add-new .player-name {
-    font-size: 18px;
-    font-weight: bold;
 	padding: 0 15px 15px 15px;
 	margin-top: 0;
+	font-weight: 400;
+	line-height: 28px;
+	color: #007bffbd;
 }
 
-/* Style player names with increased font size and boldness */
+.player-selection.add-new:hover, .player-selection.add-new:hover * {
+	color: #007bff;
+	background: white;
+}
+
+
 .player-name {
     display: block;
-    margin-top: 10px;
-    font-size: 18px;
+    font-size: 19px;
     font-weight: bold;
     text-align: center;
-	margin-bottom: 10px;
-	padding: 0 40px 0 40px;
-	line-height: 25px;
+	line-height: 23px;
+	width: 95%;
 	word-wrap: break-word;
 }
 
 .editable-text {
     cursor: text;
-	padding: 7px 10px;
-	width: fit-content;
+	padding: 3px 6px 2px 6px;
+	max-width: fit-content;
 }
 .editable-text:hover {
-	background: #c9c9c9
+	background: #0000001c;
+	width: fit-content;
+	max-width: 95%;
 }
 
-.editable-text input {
-    box-sizing: border-box;
-	padding: 7px 10px;
+.player-name-input {
+	border: 1px solid red;
 }
 
+.edit-icon {
+    margin-right: 5px;
+    color: #555;
+    font-size: 16px;
+    display: inline;  /* Force visibility */
+}
 
 /* Button styling */
 button {
@@ -217,15 +255,22 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 	cursor: pointer;
 }
 
+#fileNameDisplay {
+    width: 70%;
+    text-align: left;
+    color: #666;
+    word-wrap: break-word;
+}
 
 /* New player container: vertical layout for file input, name input, and Add Player button */
 #newPlayerContainer {
     display: none; /* hidden by default */
     flex-direction: column;
     gap: 10px;
-    margin: 20px auto;
+    margin: 30px auto;
     text-align: center;
     width: auto;
+	align-items: center;
 }
 
 /* Tabs Container */
@@ -281,7 +326,7 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 
 /* PLayer selection */
 .player-img {
-  width: 150px;
+  width: 100px;
 }
 
 /* Game board appearance */
@@ -299,14 +344,60 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 	display: flex;
 	align-items: center;
 	gap: 10px;
+	width: 334px;
+}
+
+#fileLabel {
+	text-align: left;
+	color: #666;
 }
 
 #imagePreview {
     border-radius: 8px;
     display: block;
+	position: relative;
 }
 
+#previewContainer {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 20px;
+}
 
+#inputAndButtonContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+	justify-content: flex-start;
+    gap: 10px;
+}
+#playerName {
+	width: 175px;
+}
+
+#previewContent {
+	margin: 0;
+	padding: 0;
+	position: relative;
+}
+
+#photoConfirmMessage {
+	margin: 10px 0 !important;
+}
+
+#deletePreviewBtn {
+	position: absolute;
+	top: 0;
+	right: 0;
+	padding: 8px;
+	border-radius: 0;
+	border-bottom-left-radius: 5px;
+}
+
+#deletePreviewBtn:hover {
+	filter: brightness(90%);
+}
 
 /* Game Board Layout */
 #board, .board {
@@ -418,10 +509,10 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
     color: white;
     border: none;
     border-radius: 5px;
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
-#restartBtn {
+#restartBtn, #startGameBtn {
 	display: none;
 }
 

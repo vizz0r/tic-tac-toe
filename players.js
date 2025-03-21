@@ -312,7 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1) Function to Deselect All Tabs (No Active Tab)
     // ─────────────────────────────────────────────────────────
     function deselectAllTabs() {
-        console.log("🔄 Deselecting all tabs (no active mode)...");
         const tabStorage = document.getElementById('tabStorage');
         const tabCamera = document.getElementById('tabCamera');
         const tabContentStorage = document.getElementById('tabContentStorage');
@@ -339,6 +338,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const browseButton = document.getElementById('browseButton');
     const fileNameDisplay = document.getElementById("fileNameDisplay");
     const fileLabel = document.getElementById("fileLabel");
+	
+	let activeDetectCameraClosure = null;
+	let activeFocusListener = null;
+	let editingPlayerId = null;  // Holds the player name being edited
+
+	
+	function cleanupFocusListener() {
+		if (activeFocusListener) {
+			window.removeEventListener("focus", activeFocusListener);
+			activeFocusListener = null;
+		}
+	}
+
 
     /**
      * Displays the preview + confirmation message.
@@ -346,13 +358,16 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {boolean} fromCamera - Whether this image is from the camera or from browse.
      */
 function updateUIAfterImageSelection(imageSrc, fromCamera) {
+	 // 🔄 Clear any old messages (error or success)
+    document.querySelectorAll('.errorMessage').forEach(el => el.remove());
+    let oldConfirm = document.getElementById("photoConfirmMessage");
+    if (oldConfirm) oldConfirm.remove();
+	
     // Show name input and upload button
     playerNameInput.style.display = "block";
     uploadPlayerBtn.style.display = "block";
 
     // Remove any existing confirmation or preview container
-    const oldConfirm = document.getElementById("photoConfirmMessage");
-    if (oldConfirm) oldConfirm.remove();
     const oldPreviewContainer = document.getElementById("previewContainer");
     if (oldPreviewContainer) oldPreviewContainer.remove();
 
@@ -361,22 +376,23 @@ function updateUIAfterImageSelection(imageSrc, fromCamera) {
     confirmMsg.id = "photoConfirmMessage";
     confirmMsg.style.marginBottom = "5px";
     confirmMsg.style.fontWeight = "bold";
-    confirmMsg.style.color = "#007BFF";
+    confirmMsg.style.color = "green";
     confirmMsg.textContent = fromCamera
         ? "Photo taken and attached for preview"
         : "File attached for preview";
 
-    // Create a container for the preview + delete button
+    // Create the main preview container (flex row)
     const previewContainer = document.createElement("div");
     previewContainer.id = "previewContainer";
-    previewContainer.style.display = "flex";
-    previewContainer.style.alignItems = "center";
-    previewContainer.style.gap = "8px";
+
+    // Create the image + delete button container (left side)
+    const previewContent = document.createElement("div");
+    previewContent.id = "previewContent";
 
     // Create the preview image
     const imagePreview = document.createElement("img");
     imagePreview.id = "imagePreview";
-    imagePreview.style.width = "100px";
+    imagePreview.style.width = "120px";
     imagePreview.style.marginTop = "5px";
     imagePreview.src = imageSrc;
 
@@ -386,70 +402,83 @@ function updateUIAfterImageSelection(imageSrc, fromCamera) {
     deletePreviewBtn.textContent = "❌";
     deletePreviewBtn.style.cursor = "pointer";
     deletePreviewBtn.style.border = "none";
-    deletePreviewBtn.style.background = "transparent";
-    deletePreviewBtn.style.fontSize = "18px";
+    deletePreviewBtn.style.background = "rgb(255 255 255 / 75%)";
+    deletePreviewBtn.style.fontSize = "14px";
+    deletePreviewBtn.setAttribute('title', 'Clear attachment');
 
-    // When clicked, remove preview & reset form
-deletePreviewBtn.addEventListener("click", () => {
-    // Remove the entire preview container + message
-    previewContainer.remove();
-    confirmMsg.remove();
+    // Append image and delete button into the image container
+    previewContent.appendChild(imagePreview);
+    previewContent.appendChild(deletePreviewBtn);
 
-    // Clear file references
-    if (playerUpload) {
-        playerUpload.value = "";
-    }
-    window.capturedFile = null;
+    // ✅ Create the input and button block (right side)
+    const inputAndButton = document.createElement("div");
+    inputAndButton.id = "inputAndButtonContainer";
+    inputAndButton.appendChild(playerNameInput);
+    inputAndButton.appendChild(uploadPlayerBtn);
 
-    // Clear fileNameDisplay if it exists
-    if (fileNameDisplay && fileLabel) {
-        fileNameDisplay.textContent = "";
-        fileNameDisplay.style.display = "none";
-        fileLabel.style.display = "inline";
-    }
+    // ✅ Append both sections side by side
+    previewContainer.appendChild(previewContent);
+    previewContainer.appendChild(inputAndButton);
 
-    // Hide name input & upload button
-    playerNameInput.value = "";
-    playerNameInput.style.display = "none";
-    uploadPlayerBtn.style.display = "none";
+    // Append the confirmation message and the preview container
+	newPlayerContainer.appendChild(confirmMsg);
+	newPlayerContainer.appendChild(previewContainer);
 
-    // Re-activate the "Browse" tab
-    const tabStorage = document.getElementById('tabStorage');
-    const tabCamera = document.getElementById('tabCamera');
-    const tabContentStorage = document.getElementById('tabContentStorage');
-    const tabContentCamera = document.getElementById('tabContentCamera');
+    // Delete button logic to reset everything
+    deletePreviewBtn.addEventListener("click", () => {
+        previewContainer.remove();
+        confirmMsg.remove();
 
-    if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
-        // Force "Browse" tab to be active
-        tabStorage.classList.add('active');
-        tabCamera.classList.remove('active');
-        tabContentStorage.style.display = 'block';
-        tabContentCamera.style.display = 'none';
-    }
+        // Clear file references
+        if (playerUpload) playerUpload.value = "";
+        window.capturedFile = null;
 
-    console.log("New player form displayed. Reset to 'Open Gallery' tab.");
-});
+        // Reset file name display if exists
+        if (fileNameDisplay && fileLabel) {
+            fileNameDisplay.textContent = "";
+            fileNameDisplay.style.display = "none";
+            fileLabel.style.display = "inline";
+        }
+
+        // Hide name input & upload button
+        playerNameInput.value = "";
+        playerNameInput.style.display = "none";
+        uploadPlayerBtn.style.display = "none";
+
+        // Re-activate the "Browse" tab
+        const tabStorage = document.getElementById('tabStorage');
+        const tabCamera = document.getElementById('tabCamera');
+        const tabContentStorage = document.getElementById('tabContentStorage');
+        const tabContentCamera = document.getElementById('tabContentCamera');
+        if (tabStorage && tabCamera && tabContentStorage && tabContentCamera) {
+            tabStorage.classList.add('active');
+            tabCamera.classList.remove('active');
+            tabContentStorage.style.display = 'block';
+            tabContentCamera.style.display = 'none';
+        }
+
+        console.log("New player form displayed. Reset to 'Open Gallery' tab.");
+    });
+}
 
 
-    // Assemble everything
-    previewContainer.appendChild(imagePreview);
-    previewContainer.appendChild(deletePreviewBtn);
+// If "Browse" button is clicked, open file picker
+if (browseButton && playerUpload) {
+    browseButton.addEventListener('click', () => {
+        console.log("Browse button clicked.");
+        playerUpload.click();
 
-    // Insert them above the name input
-    newPlayerContainer.insertBefore(confirmMsg, playerNameInput);
-    newPlayerContainer.insertBefore(previewContainer, playerNameInput);
+        // ✅ Clean up any pending camera closure detection using the centralized function
+        cleanupFocusListener();
+
+        // ✅ Optional: clear the closure reference
+        activeDetectCameraClosure = null;
+    });
 }
 
 
 
 
-    // If "Browse" button is clicked, open file picker
-    if (browseButton && playerUpload) {
-        browseButton.addEventListener('click', () => {
-            console.log("Browse button clicked.");
-            playerUpload.click();
-        });
-    }
 
     // If user picks a file from "Browse"
 if (playerUpload) {
@@ -468,6 +497,8 @@ if (playerUpload) {
                 fileNameDisplay.style.display = "inline-block";
                 fileLabel.style.display = "none";
             }
+			
+			window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
     });
 }
@@ -501,71 +532,104 @@ if (playerUpload) {
             });
 
             // "Take Photo" tab
-            tabCamera.addEventListener('click', () => {
-                console.log("📷 User selected 'Take Photo' tab. Camera is starting...");
-                tabCamera.classList.add('active');
-                tabStorage.classList.remove('active');
-                tabContentCamera.style.display = 'block';
-                tabContentStorage.style.display = 'none';
+tabCamera.addEventListener('click', () => {
+    console.log("📷 User selected 'Take Photo' tab. Camera is starting...");
 
-                const captureInput = document.createElement("input");
-                captureInput.type = "file";
-                captureInput.accept = "image/*";
-                captureInput.setAttribute("capture", "environment");
-                captureInput.style.display = "none";
-                document.body.appendChild(captureInput);
-
-                let cameraOpen = true;  
-                let photoTaken = false; 
-
-                // Detect camera closure w/o photo
-                const detectCameraClosure = () => {
-                    if (cameraOpen && !photoTaken) {
-                        console.log("❌ Camera was closed without taking a photo.");
-                        // Deselect all tabs if user closed camera
-                        deselectAllTabs();
-                    }
-                    window.removeEventListener("focus", detectCameraClosure);
-                };
-                // Mobile: detect camera closure
-                window.addEventListener("focus", detectCameraClosure);
-
-captureInput.addEventListener("change", () => {
-    const file = captureInput.files[0];
-    if (file) {
-        console.log("✅ Photo taken. Attaching for preview...");
-        const imageSrc = URL.createObjectURL(file);
-
-        // Show "Photo taken and attached for preview"
-        updateUIAfterImageSelection(imageSrc, true);
-
-        window.capturedFile = file;
-        cameraOpen = false;  
-        photoTaken = true;  
-
-        // Clear the fileNameDisplay if it was previously set
-        if (fileNameDisplay && fileLabel) {
-            fileNameDisplay.textContent = "";
-            fileNameDisplay.style.display = "none";
-            fileLabel.style.display = "inline";
-        }
-
-        // Remove closure detection, then deselect tabs after short delay...
-        window.removeEventListener("focus", detectCameraClosure);
-        setTimeout(() => {
-            console.log("🔄 Deselecting tabs after successful photo.");
-            deselectAllTabs();
-        }, 500);
-
-    } else {
-        console.log("❌ No photo taken. Camera closed. Deselecting tabs.");
-        deselectAllTabs();
+    // ✅ Clean up any previous closure listener
+    if (activeDetectCameraClosure) {
+        window.removeEventListener("focus", activeDetectCameraClosure);
+        activeDetectCameraClosure = null;
     }
-    document.body.removeChild(captureInput);
+
+    cameraOpen = true;
+    photoTaken = false;
+
+activeDetectCameraClosure = function detectCameraClosure() {
+    console.log("🔎 Checking camera closure...");
+
+    if (photoTaken) {
+        console.log("✅ Photo confirmed. Skipping error message.");
+        cleanupFocusListener();   // ✅ Clean up here
+        activeDetectCameraClosure = null;
+        return;
+    }
+
+    if (cameraOpen && !photoTaken) {
+        console.log("❌ Camera was closed without taking a photo.");
+        deselectAllTabs();
+        document.querySelectorAll('.errorMessage').forEach(el => el.remove());
+        const errorMsg = document.createElement("div");
+        errorMsg.className = "errorMessage";
+        errorMsg.style.marginBottom = "5px";
+        errorMsg.style.fontWeight = "bold";
+        errorMsg.style.color = "#FF0000";
+        errorMsg.textContent = "No photo attached. Make a selection.";
+        newPlayerContainer.appendChild(errorMsg);
+    }
+
+    cleanupFocusListener();   // ✅ Clean up here too
+    activeDetectCameraClosure = null;
+};
+
+
+// Clean up any previous listener
+if (activeFocusListener) {
+    window.removeEventListener("focus", activeFocusListener);
+    activeFocusListener = null;
+}
+
+activeFocusListener = () => {
+    if (!photoTaken) {
+        setTimeout(activeDetectCameraClosure, 400);
+    }
+};
+window.addEventListener("focus", activeFocusListener);
+
+
+    // ✅ Create capture input here
+    const captureInput = document.createElement("input");
+    captureInput.type = "file";
+    captureInput.accept = "image/*";
+    captureInput.setAttribute("capture", "environment");
+    captureInput.style.display = "none";
+    document.body.appendChild(captureInput);
+
+    captureInput.addEventListener("change", () => {
+        const file = captureInput.files[0];
+        if (file) {
+            console.log("✅ Photo taken. Attaching for preview...");
+            const imageSrc = URL.createObjectURL(file);
+
+            updateUIAfterImageSelection(imageSrc, true);
+
+            window.capturedFile = file;
+            cameraOpen = false;
+            photoTaken = true;
+
+            // ✅ Optional file label cleanup
+            if (fileNameDisplay && fileLabel) {
+                fileNameDisplay.textContent = "";
+                fileNameDisplay.style.display = "none";
+                fileLabel.style.display = "inline";
+            }
+
+setTimeout(() => {
+    console.log("🔄 Deselecting tabs after successful photo.");
+    deselectAllTabs();
+}, 50);
+
+        } else {
+            console.log("❌ No photo taken. Camera closed. Deselecting tabs.");
+            deselectAllTabs();
+        }
+		
+		window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        document.body.removeChild(captureInput);
+    });
+
+    captureInput.click();
 });
 
-                captureInput.click();
-            });
         } else {
             console.log("Mobile: Tab elements missing in HTML.");
         }
@@ -609,39 +673,49 @@ captureInput.addEventListener("change", () => {
     const uploadedPlayersContainer = document.getElementById('uploaded-players');
     const startGameBtn = document.getElementById('startGameBtn');
 
-    let players = JSON.parse(localStorage.getItem('players')) || [
-        { name: 'Alex', image: 'images/playerX.png' },
-        { name: 'Martin', image: 'images/playerO.png' }
-    ];
-    let storedSelectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers'));
-    let selectedPlayers = new Set();
+// 1. Ensure players have IDs when loaded
+let players = JSON.parse(localStorage.getItem('players')) || [
+    { id: 'player1', name: 'Alex', image: 'images/playerX.png', isDefault: true },
+    { id: 'player2', name: 'Martin', image: 'images/playerO.png', isDefault: true }
+];
 
-    if (storedSelectedPlayers) {
-        if (storedSelectedPlayers.player1) selectedPlayers.add(storedSelectedPlayers.player1);
-        if (storedSelectedPlayers.player2) selectedPlayers.add(storedSelectedPlayers.player2);
-    }
-    if (selectedPlayers.size === 0 && players.length === 2) {
-        selectedPlayers.add('Alex');
-        selectedPlayers.add('Martin');
-    }
+// 2. Load selectedPlayers from storage
+let storedSelectedPlayers = JSON.parse(localStorage.getItem('selectedPlayers'));
+let selectedPlayers = new Set();
 
-    function persistSelectedPlayers() {
-        localStorage.setItem('selectedPlayers', JSON.stringify({
-            player1: [...selectedPlayers][0] || null,
-            player2: [...selectedPlayers][1] || null
-        }));
-        console.log("💾 Persisted selected players:", localStorage.getItem('selectedPlayers'));
-    }
+if (storedSelectedPlayers) {
+    if (storedSelectedPlayers.player1) selectedPlayers.add(storedSelectedPlayers.player1);
+    if (storedSelectedPlayers.player2) selectedPlayers.add(storedSelectedPlayers.player2);
+}
+
+// 3. Fallback safely if empty
+if (selectedPlayers.size === 0 && players.length >= 2 && players[0].id && players[1].id) {
+    console.log("✅ No selected players found, defaulting to first two players");
+    selectedPlayers.add(players[0].id);
+    selectedPlayers.add(players[1].id);
+}
+
+
+function persistSelectedPlayers() {
+    const ids = Array.from(selectedPlayers).filter(id => id);  // ✅ Filter out null/undefined
+    localStorage.setItem('selectedPlayers', JSON.stringify({
+        player1: ids[0] || null,
+        player2: ids[1] || null
+    }));
+    console.log("💾 Persisted selected players:", localStorage.getItem('selectedPlayers'));
+}
+
+
     persistSelectedPlayers();
     console.log("✅ Players selected after load:", Array.from(selectedPlayers));
 
 uploadedPlayersContainer.addEventListener('click', (event) => {
-	// ✅ Skip if clicking inside the editing <input>
+    // ✅ Skip if clicking inside the editing <input>
     if (event.target.closest('input')) {
         console.log('✏ Clicked inside editing input - skip player selection');
         return;
     }
-	
+
     if (event.target.closest('.delete-player-btn')) {
         deletePlayer(event);
         return;
@@ -656,23 +730,29 @@ uploadedPlayersContainer.addEventListener('click', (event) => {
     const playerDiv = event.target.closest('.player-selection');
     if (playerDiv) {
         if (playerDiv.classList.contains('add-new')) {
-            if (newPlayerContainer && (newPlayerContainer.style.display === "none" || newPlayerContainer.style.display === "")) {
-                newPlayerContainer.style.display = "inline-flex";
-                newPlayerContainer.style.flexDirection = "column";
-                console.log("New player form displayed.");
-            }
+            console.log("🆕 Add New Player clicked");
+            newPlayerContainer.style.display = "inline-flex";
+			
+			window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+
+            return;
         } else {
-            const playerName = playerDiv.getAttribute('data-player-name');
-            handlePlayerSelection(playerName);
+            const playerId = playerDiv.getAttribute('data-player-id');
+            handlePlayerSelection(playerId);
         }
     }
 });
 
 
 
+
 	// Upload button logic with conditional background removal API call.
 uploadPlayerBtn.addEventListener("click", async () => {
-    uploadPlayerBtn.textContent = "Uploading Player...";
+    uploadPlayerBtn.textContent = "Uploading...";
+	const spinner = document.createElement("span");
+    spinner.classList.add("spinner");
+    uploadPlayerBtn.appendChild(spinner);
+	uploadPlayerBtn.prepend(spinner);
     uploadPlayerBtn.disabled = true;
 
     // 1) Unified fallback: either from "playerUpload" (gallery) or "window.capturedFile" (camera).
@@ -736,7 +816,8 @@ uploadPlayerBtn.addEventListener("click", async () => {
         const finalImage = await cropFaceToSquare(processedBlob);
 
         // 8) Add new player and update UI
-        players.push({ name: playerName, image: finalImage });
+        const newPlayerId = `player_${Date.now()}`;
+		players.push({ id: newPlayerId, name: playerName, image: finalImage, isDefault: false });
         savePlayers();
         renderPlayers();
         console.log(`✅ New Player Added: ${playerName}`);
@@ -784,81 +865,121 @@ uploadPlayerBtn.addEventListener("click", async () => {
         localStorage.setItem('players', JSON.stringify(players));
     }
 
-    function renderPlayers() {
-        console.log("🔄 Rendering Players...");
-        uploadedPlayersContainer.innerHTML = "";
+function renderPlayers() {
+    console.log("🔄 Rendering Players...");
+    uploadedPlayersContainer.innerHTML = "";
 
-        let storedPlayers = JSON.parse(localStorage.getItem('players')) || [];
-        players.forEach((p, index) => {
-            let isNewPlayer = storedPlayers.some(sp => sp.name === p.name);
-            const isSelected = selectedPlayers.has(p.name);
+    let storedPlayers = JSON.parse(localStorage.getItem('players')) || [];
 
-            uploadedPlayersContainer.innerHTML += `
-                <div class="player-selection ${isSelected ? 'selected' : ''} ${isNewPlayer ? 'new-player' : ''}" data-player-name="${p.name}">
-                    ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
-                    <span class="player-name editable-text">${p.name}</span>
-                    <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img">
-                    ${isSelected ? `<div class="selected-tag">Selected</div>` : ""}
-                </div>
-            `;
-            console.log(`✅ Player Rendered: ${p.name} (Selected: ${isSelected}, New Player: ${isNewPlayer})`);
-        });
+    players.forEach((p, index) => {
+        let isNewPlayer = !p.isDefault;
+        const isSelected = selectedPlayers.has(p.id);  // ✅ Use ID for selection check
 
         uploadedPlayersContainer.innerHTML += `
-            <div class="player-selection add-new" data-action="add-new">
-                <span class="plus-icon">+</span>
-                <span class="player-name">Add New Player</span>
-            </div>
-        `;
-        updateSelectionTitle();
-		
-		// ✅ Bind the editable logic to the freshly rendered spans
-		uploadedPlayersContainer.querySelectorAll('.editable-text').forEach(makeSpanEditable);
+          <div class="player-selection ${isSelected ? 'selected' : ''} ${isNewPlayer ? 'new-player' : ''}" data-player-id="${p.id}">
+            <img src="${p.image}" onerror="this.src='images/default-avatar.png'" alt="${p.name}" class="player-img">
 
-    }
-
-    function handlePlayerSelection(playerName) {
-        if (selectedPlayers.has(playerName)) {
-            selectedPlayers.delete(playerName);
-            console.log(`🎯 Deselected player: ${playerName}`);
-        } else {
-            if (selectedPlayers.size >= 2) {
-                displayMessage("You must deselect one player before selecting another.");
-                console.log("❌ Too Many Players Selected! Cannot select additional player.");
-                return;
+            ${editingPlayerId === p.id
+              ? `<span class="edit-icon">✏️</span>
+                 <input type="text" class="player-name-input" value="${p.name}" 
+                        style="max-width: 85%; font-size: 16px; padding: 5px 7px;">`
+              : `<span class="player-name editable-text">${p.name}</span>`
             }
-            selectedPlayers.add(playerName);
-            console.log(`🎯 Selected player: ${playerName}`);
-        }
-        persistSelectedPlayers();
-        renderPlayers();
-    }
 
-    function updateSelectionTitle() {
-        const titleEl = document.getElementById('selection-title');
-        if (selectedPlayers.size === 0) {
-            titleEl.textContent = "Select 2 Players";
-        } else if (selectedPlayers.size === 1) {
-            titleEl.textContent = "Select 1 More Player";
-        } else if (selectedPlayers.size === 2) {
-            titleEl.textContent = "Selected Players";
-        }
+            ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
+            ${isSelected ? `<div class="selected-tag">Selected</div>` : ""}
+          </div>
+        `;
+
+        console.log(`✅ Player Rendered: ${p.name} (Selected: ${isSelected}, New Player: ${isNewPlayer})`);
+    });
+
+    // ✅ Add "Add New Player" card
+    uploadedPlayersContainer.innerHTML += `
+        <div class="player-selection add-new" data-action="add-new">
+            <span class="plus-icon">+</span>
+            <span class="player-name">Add New Player</span>
+        </div>
+    `;
+
+    updateSelectionTitle();
+
+    // ✅ Re-bind editable spans
+    uploadedPlayersContainer.querySelectorAll('.editable-text').forEach(makeSpanEditable);
+
+    // ✅ Re-bind active input for editing
+    const activeInput = document.querySelector('.player-name-input');
+    if (activeInput) {
+        activeInput.focus();
+        activeInput.select();
+
+        activeInput.addEventListener('blur', saveEditedName);
+        activeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveEditedName.call(activeInput);
+        });
     }
+}
+
+
+
+
+function handlePlayerSelection(playerId) {
+    if (selectedPlayers.has(playerId)) {
+        selectedPlayers.delete(playerId);
+        console.log(`Deselected player: ${playerId}`);
+    } else {
+        if (selectedPlayers.size >= 2) {
+            displayMessage("You must deselect one player before selecting another.");
+            console.log("❌ Cannot select more than 2 players.");
+            return;
+        }
+        selectedPlayers.add(playerId);
+        console.log(`Selected player: ${playerId}`);
+    }
+    persistSelectedPlayers();
+    renderPlayers();
+}
+
+
+function updateSelectionTitle() {
+    const titleEl = document.getElementById('selection-title');
+
+    console.log(`🎯 Selected Players Count: ${selectedPlayers.size}`);
+
+    if (selectedPlayers.size === 0) {
+        titleEl.textContent = "Select 2 Players";
+        startGameBtn.style.display = "none";
+    } else if (selectedPlayers.size === 1) {
+        titleEl.textContent = "Select 1 More Player";
+        startGameBtn.style.display = "none";
+    } else if (selectedPlayers.size === 2) {
+        titleEl.textContent = "Selected Players";
+        startGameBtn.style.display = "inline-flex";
+    } else {
+        // ✅ Fail-safe
+        titleEl.textContent = "Invalid Selection";
+        startGameBtn.style.display = "none";
+    }
+}
+
+
 
 ///////////////////////////////////////
-// 1) Replace your deletePlayer(event)
+// ✅ Updated deletePlayer(event)
 ///////////////////////////////////////
 function deletePlayer(event) {
     event.stopPropagation(); // Prevent click from bubbling further
 
     // Identify which player index was clicked
     const playerIndex = parseInt(event.target.getAttribute("data-index"));
-    // Retrieve the player's name from your 'players' array
-    const playerName = players[playerIndex].name;
+    // Retrieve the player's id and name from your 'players' array
+    const player = players[playerIndex];
+    const playerId = player.id;
+    const playerName = player.name;
 
     // Show a custom confirmation modal
     createDeleteConfirmationModal(playerName, () => {
-        console.log(`🗑️ Confirmed deletion of player: ${playerName}`);
+        console.log(`🗑️ Modal confirmed deletion of player: ${playerName}`);
 
         // Only delete if it's not one of the first two "default" players
         if (playerIndex >= 2) {
@@ -866,15 +987,23 @@ function deletePlayer(event) {
             players.splice(playerIndex, 1);
             savePlayers();
 
-            // 2) Remove the player by name from selectedPlayers
-            selectedPlayers.delete(playerName);
+            // 2) Remove the player by ID from selectedPlayers (important)
+            selectedPlayers.delete(playerId);
             persistSelectedPlayers();
+			
+			// ✅ NEW: Auto-select default players if only two remain
+            if (players.length === 2 && players[0].id === 'player1' && players[1].id === 'player2') {
+                selectedPlayers.clear();
+                selectedPlayers.add('player1');
+                selectedPlayers.add('player2');
+                console.log("✅ Only default players left. Auto-selected player1 and player2.");
+                persistSelectedPlayers();
+            }
 
             // 3) Re-render after the data is updated
             renderPlayers();
-            updateSelectionTitle();
 
-            console.log("✅ Successfully deleted player:", playerName);
+            console.log("✅ Successfully deleted player:", playerId);
             console.log("players array is now:", players);
             console.log("selectedPlayers is now:", Array.from(selectedPlayers));
         }
@@ -931,91 +1060,48 @@ function createDeleteConfirmationModal(playerName, onConfirm) {
 	
 	//Click to edit any player name
 function makeSpanEditable(span) {
-    span.addEventListener('click', function handler(e) {
+    span.addEventListener('click', function (e) {
         e.stopPropagation();
-
-        const currentText = span.textContent.trim();
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = currentText;
-        input.className = 'player-name';
-		input.style.display = 'inline-block';
-		input.style.width = `${Math.max(currentText.length, 5)}ch`; // fallback minimum 5ch
-		input.style.fontSize = '18px';
-		input.style.fontWeight = 'bold';
-        input.style.fontSize = '18px';
-        input.style.fontWeight = 'bold';
-        input.style.marginBottom = '10px';
-        input.style.marginTop = '10px';
-        input.style.paddingTop = '6px';
-        input.style.paddingBottom = '6px';
-
-        span.replaceWith(input);
-        input.focus();
-        input.select();
-
-        let isSaving = false;
-
-        // 👇 Prevent blur if the click is inside the input itself
-        input.addEventListener('mousedown', function (event) {
-            event.stopPropagation();
-        });
-
-		function save() {
-			if (isSaving) return;
-			isSaving = true;
-
-			const newName = input.value.trim() || 'Unnamed';
-
-			const playerCard = input.closest('.player-selection');
-			const oldName = playerCard.getAttribute('data-player-name');
-			playerCard.setAttribute('data-player-name', newName);
-
-			// ✅ Update player in the players[] array
-			const player = players.find(p => p.name === oldName);
-			if (player) {
-				player.name = newName;
-				console.log(`💾 Player name updated: ${oldName} ➔ ${newName}`);
-			}
-
-			// ✅ Update selectedPlayers Set if needed
-			if (selectedPlayers.has(oldName)) {
-				selectedPlayers.delete(oldName);
-				selectedPlayers.add(newName);
-				console.log(`🔄 Updated selection from "${oldName}" to "${newName}"`);
-			}
-
-			savePlayers();
-			persistSelectedPlayers();
-
-			const newSpan = document.createElement('span');
-			newSpan.className = span.className;
-			newSpan.textContent = newName;
-			input.replaceWith(newSpan);
-			makeSpanEditable(newSpan);
-		}
-
-
-        // 👇 `mousedown` will protect from premature blur
-        input.addEventListener('blur', () => setTimeout(save, 100));
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') save();
-        });
-
-        span.removeEventListener('click', handler);
+        const playerCard = span.closest('.player-selection');
+        editingPlayerId = playerCard.getAttribute('data-player-id');  // ✅ Use player ID
+        renderPlayers(); // ✅ Re-render with the input field visible
     });
 }
 
 
+function saveEditedName() {
+    const input = this;
+    const newName = input.value.trim() || 'Unnamed';
+    const playerCard = input.closest('.player-selection');
+    const playerId = playerCard.getAttribute('data-player-id'); // ✅ Pull the correct ID
 
-    startGameBtn.addEventListener('click', () => {
-        if (selectedPlayers.size !== 2) {
-            displayMessage("Please select exactly two players.");
-            return;
-        }
-        persistSelectedPlayers();
-        window.location.href = "index.html";
-    });
+    const player = players.find(p => p.id === playerId);
+    if (player) {
+        player.name = newName;
+        console.log(`💾 Player name updated: ${player.name} ➔ ${newName}`);
+    }
+
+    // ✅ No need to touch selectedPlayers Set (it's ID-based)
+    // ✅ No need to set data-player-name (ID stays same, name updates inside player object)
+
+    savePlayers();
+    persistSelectedPlayers();
+
+    editingPlayerId = null;  // ✅ Reset editing mode
+    renderPlayers();
+}
+
+
+
+startGameBtn.addEventListener('click', () => {
+    if (selectedPlayers.size !== 2) {
+        displayMessage("Please select exactly two players.");
+        return;
+    }
+    persistSelectedPlayers();
+    window.location.href = "index.html";
+});
+
 
     // Initial render
     renderPlayers();
