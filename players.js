@@ -488,7 +488,7 @@ if (playerUpload) {
 			// ✅ Validate that it's an image
             if (!file.type.startsWith('image/')) {
                 console.warn("🚫 Selected file is not an image:", file.type);
-                displayMessage("Please select a valid image format (JPG, PNG, etc)");
+                displayMessage("Please select a valid image format.");
                 playerUpload.value = ""; // Reset the input
                 return;
             }
