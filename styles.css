@@ -227,7 +227,8 @@ h1 {
 }
 
 .player-name-input {
-	border: 1px solid red;
+	outline: 1px solid red !important;
+	font-size: 18px !important;
 }
 
 .edit-icon {

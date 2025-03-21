@@ -895,7 +895,7 @@ function renderPlayers() {
             }
 
             ${index >= 2 ? `<button class="delete-player-btn" data-index="${index}">🗑</button>` : ""}
-            ${isSelected ? `<div class="selected-tag">Selected</div>` : ""}
+            ${isSelected ? `<div class="selected-tag">SELECTED</div>` : ""}
           </div>
         `;
 
