@@ -535,6 +535,10 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
     margin-top: 20px;
 }
 
+#restartBtn {
+	margin-top: 10px;
+}
+
 #restartBtn, #startGameBtn {
 	display: none;
 }
@@ -894,7 +898,7 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 }
 
 #muteBtn:has(+ #resetScoreBtn) {
-	margin-right: 6px;
+	margin-right: 10px;
 }
 
 #header-buttons {
