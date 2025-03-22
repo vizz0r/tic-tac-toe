@@ -187,15 +187,16 @@ h1 {
 
 .player-selection.add-new .plus-icon {
     font-size: 48px;
+    font-weight: 300;
     display: block;
-	color: #007BFF90;
+    color: #007BFF;
 }
 .player-selection.add-new .player-name {
-	padding: 0 15px 15px 15px;
-	margin-top: 0;
-	font-weight: 400;
-	line-height: 28px;
-	color: #007bffbd;
+    padding: 0 15px 15px 15px;
+    margin-top: 0;
+    font-weight: 400;
+    line-height: 28px;
+    color: #007bff;
 }
 
 .player-selection.add-new:hover, .player-selection.add-new:hover * {
@@ -421,6 +422,11 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 	padding: 8px;
 	border-radius: 0;
 	border-bottom-left-radius: 5px;
+}
+.errorMessage {
+    letter-spacing: 0.5px !important;
+    font-weight: 500 !important;
+    margin: 10px 0 !important;
 }
 
 #deletePreviewBtn:hover {

@@ -562,8 +562,12 @@ activeDetectCameraClosure = function detectCameraClosure() {
         return;
     }
 
-    if (cameraOpen && !photoTaken) {
-        console.log("❌ Camera was closed without taking a photo.");
+if (cameraOpen && !photoTaken) {
+    const previewExists = document.getElementById("previewContainer");
+    if (previewExists) {
+        console.log("✅ Preview already exists. Skipping error message.");
+    } else {
+        console.log("❌ Camera was closed without taking a photo and no preview exists.");
         deselectAllTabs();
         document.querySelectorAll('.errorMessage').forEach(el => el.remove());
         const errorMsg = document.createElement("div");
@@ -571,9 +575,11 @@ activeDetectCameraClosure = function detectCameraClosure() {
         errorMsg.style.marginBottom = "5px";
         errorMsg.style.fontWeight = "bold";
         errorMsg.style.color = "#FF0000";
-        errorMsg.textContent = "No photo attached. Make a selection.";
+        errorMsg.textContent = "⚠ No photo attached. Make a selection.";
         newPlayerContainer.appendChild(errorMsg);
     }
+}
+
 
     cleanupFocusListener();   // ✅ Clean up here too
     activeDetectCameraClosure = null;
