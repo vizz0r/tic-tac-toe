@@ -767,7 +767,8 @@ uploadPlayerBtn.addEventListener("click", async () => {
     spinner.classList.add("spinner");
     uploadPlayerBtn.appendChild(spinner);
 	uploadPlayerBtn.prepend(spinner);
-    uploadPlayerBtn.disabled = true;
+	uploadPlayerBtn.style.pointerEvents = "none";
+	browseButton.style.pointerEvents = "none";
 
     // 1) Unified fallback: either from "playerUpload" (gallery) or "window.capturedFile" (camera).
     let file = playerUpload.files[0] || window.capturedFile;
@@ -901,7 +902,8 @@ function renderPlayers() {
             }
 
             ${index >= 2 ? `<button title="Delete player" class="delete-player-btn" data-index="${index}">❌</button>` : ""}
-            ${isSelected ? `<div class="selected-tag">SELECTED</div>` : ""}
+            <div class="selected-tag">SELECTED</div>
+
           </div>
         `;
 
@@ -934,6 +936,13 @@ function renderPlayers() {
     }
 }
 
+// Helper function to toggle the 'selected' class
+function togglePlayerSelectionClass(playerId) {
+    const playerDiv = document.querySelector(`.player-selection[data-player-id="${playerId}"]`);
+    if (playerDiv) {
+        playerDiv.classList.toggle('selected');
+    }
+}
 
 
 
@@ -950,9 +959,22 @@ function handlePlayerSelection(playerId) {
         selectedPlayers.add(playerId);
         console.log(`Selected player: ${playerId}`);
     }
+
     persistSelectedPlayers();
-    renderPlayers();
+    togglePlayerSelectionClass(playerId);
+
+    // ✅ Update title and start button state
+    updateSelectionTitle();
+
+    // ✅ Scroll only if we now have 2 players selected
+    if (selectedPlayers.size === 2) {
+        setTimeout(() => {
+            startGameBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    }
 }
+
+
 
 
 function updateSelectionTitle() {
@@ -962,20 +984,24 @@ function updateSelectionTitle() {
 
     if (selectedPlayers.size === 0) {
         titleEl.textContent = "Select 2 Players";
-        startGameBtn.style.display = "none";
+        startGameBtn.classList.remove('visible');
     } else if (selectedPlayers.size === 1) {
         titleEl.textContent = "Select 1 More Player";
-        startGameBtn.style.display = "none";
+        startGameBtn.classList.remove('visible');
     } else if (selectedPlayers.size === 2) {
         titleEl.textContent = "Selected Players";
-        startGameBtn.style.display = "inline-flex";
+        startGameBtn.classList.add('visible');
+
+        // ✅ Auto-scroll to reveal the Start Game button
+        setTimeout(() => {
+            startGameBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100); // slight delay ensures DOM is updated before scroll
     } else {
         // ✅ Fail-safe
         titleEl.textContent = "Invalid Selection";
-        startGameBtn.style.display = "none";
+        startGameBtn.classList.remove('visible');
     }
 }
-
 
 
 ///////////////////////////////////////
@@ -1036,7 +1062,7 @@ function createDeleteConfirmationModal(playerName, onConfirm) {
 
     // Modal text
     const message = document.createElement("p");
-    message.innerHTML = `Do you want to delete player <span class="bold">'${playerName}'</span>?`;
+    message.innerHTML = `Are you sure you want to delete player <span class="bold">'${playerName}'</span>?`;
 
     // Container for buttons
     const btnContainer = document.createElement("div");
