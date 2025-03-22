@@ -290,18 +290,17 @@ async function cropFaceToSquare(imageBlob) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("📌 Page Loaded - Initializing Players");
 
-    // Sticky title with drop shadow on scroll
-    window.addEventListener('scroll', () => {
-        const selectionTitle = document.getElementById('selection-title');
-        if (selectionTitle) {
-            const rect = selectionTitle.getBoundingClientRect();
-            if (rect.top <= 0) {
-                selectionTitle.classList.add('drop-shadow');
-            } else {
-                selectionTitle.classList.remove('drop-shadow');
-            }
-        } 
-    });
+    // Adds drop shadow on page scroll
+	window.addEventListener('scroll', () => {
+		const selectionTitle = document.getElementById('selection-title');
+		if (selectionTitle) {
+			if (window.scrollY > 0) {
+				selectionTitle.classList.add('drop-shadow');
+			} else {
+				selectionTitle.classList.remove('drop-shadow');
+			}
+		}
+	});
 	
 
     // Detect mobile
@@ -992,7 +991,7 @@ function updateSelectionTitle() {
         startGameBtn.classList.remove('visible');
 		selectionTitle.style.backgroundColor = "";
     } else if (selectedPlayers.size === 2) {
-        titleEl.textContent = "✅ 2 Selected Players";
+        titleEl.textContent = "✅ 2 Players Selected";
         startGameBtn.classList.add('visible');
 		selectionTitle.style.backgroundColor = "#deefde";
 
