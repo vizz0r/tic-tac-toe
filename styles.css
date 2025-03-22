@@ -44,9 +44,11 @@ h1 {
 }
 
 #selection-title.drop-shadow {
-	padding-top: 15px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  margin: 0 -20px;
+	padding-top: 20px;
+	padding-bottom: 20px;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+	margin: 0 -20px;
+	border-bottom: 1px solid #a8cba8;
 }
 	
 
