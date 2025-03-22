@@ -744,10 +744,8 @@ uploadedPlayersContainer.addEventListener('click', (event) => {
     if (playerDiv) {
         if (playerDiv.classList.contains('add-new')) {
             console.log("🆕 Add New Player clicked");
-            newPlayerContainer.style.display = "inline-flex";
-			
+            newPlayerContainer.style.display = "inline-flex";			
 			window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-
             return;
         } else {
             const playerId = playerDiv.getAttribute('data-player-id');
@@ -871,6 +869,9 @@ uploadPlayerBtn.addEventListener("click", async () => {
     } finally {
         uploadPlayerBtn.textContent = "Upload Player";
         uploadPlayerBtn.disabled = false;
+		// ✅ Re-enable pointer events here
+		uploadPlayerBtn.style.pointerEvents = "auto";
+		browseButton.style.pointerEvents = "auto";
     }
 });
 
