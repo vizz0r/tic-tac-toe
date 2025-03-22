@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 selectionTitle.classList.remove('drop-shadow');
             }
-        }
+        } 
     });
 	
 
@@ -979,18 +979,22 @@ function handlePlayerSelection(playerId) {
 
 function updateSelectionTitle() {
     const titleEl = document.getElementById('selection-title');
-
+	const selectionTitle = document.getElementById('selection-title');
+		
     console.log(`🎯 Selected Players Count: ${selectedPlayers.size}`);
 
     if (selectedPlayers.size === 0) {
         titleEl.textContent = "Select 2 Players";
         startGameBtn.classList.remove('visible');
+		selectionTitle.style.backgroundColor = "";
     } else if (selectedPlayers.size === 1) {
         titleEl.textContent = "Select 1 More Player";
         startGameBtn.classList.remove('visible');
+		selectionTitle.style.backgroundColor = "";
     } else if (selectedPlayers.size === 2) {
-        titleEl.textContent = "Selected Players";
+        titleEl.textContent = "✅ 2 Selected Players";
         startGameBtn.classList.add('visible');
+		selectionTitle.style.backgroundColor = "#deefde";
 
         // ✅ Auto-scroll to reveal the Start Game button
         setTimeout(() => {

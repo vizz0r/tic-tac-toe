@@ -575,7 +575,7 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 #startGameBtn {
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s ease; /* Smooth fade */
+  /* transition: opacity 0.3s ease; */ /* Smooth fade */
 }
 
 #startGameBtn.visible {
