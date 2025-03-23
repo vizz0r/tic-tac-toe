@@ -314,8 +314,8 @@ async function cropFaceToSquare(imageBlob) {
                 const faceWidth = maxX - minX;
                 const faceHeight = maxY - minY;
                 
-                // Expand crop size by 30% for zoom-out effect
-                const squareSize = Math.max(faceWidth, faceHeight) * 1.3;
+                // Expand crop size by 40% for zoom-out effect
+                const squareSize = Math.max(faceWidth, faceHeight) * 1.4;
 
                 const faceCenterX = minX + faceWidth / 2;
                 let faceCenterY = minY + faceHeight / 2;
