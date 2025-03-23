@@ -480,7 +480,7 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 }
 
 .winning-cell::after {
-    content: "\2714";
+    content: "✔";
 	color: #369f74 !important;
 	font-weight: 600;
     font-size: 68px;   /* Adjust size as needed */
@@ -489,20 +489,20 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
     left: 50%;
     transform: translate(-50%, -50%);
 	    text-shadow:
-        -1px -1px 0 white,
-         1px -1px 0 white,
-        -1px  1px 0 white,
-         1px  1px 0 white;
+        -2px -2px 0 white,
+         2px -2px 0 white,
+        -2px  2px 0 white,
+         2px  2px 0 white;
     pointer-events: none; /* Ensure click events pass through if needed */
 }
 
-/* .disabled {
-	filter: brightness(105%);
+.disabled {
+	filter: brightness(100%);
 } 
 
 .disabled img {
-	opacity: 0.35 !important;
-} */
+	opacity: 0.4 !important;
+}
 
 
 /* Style for each Tic-Tac-Toe cell */

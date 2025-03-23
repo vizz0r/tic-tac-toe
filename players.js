@@ -83,8 +83,9 @@ function downscaleImage(file, maxDimension = 1200) {
             reject(new Error("Downscale failed: Canvas is empty."));
           }
         },
-        "image/jpeg",
+        "image/png",
         0.95 // JPEG quality (0.0 to 1.0). Adjust as needed
+		// Sharepning value "0.95" ignored when PNG is used
       );
     };
     img.onerror = (err) => reject(err);
@@ -157,28 +158,29 @@ function processImage(file) {
             ctx.filter = "brightness(105%) contrast(105%) saturate(120%)";
 
             // White background fill, then draw
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            //ctx.fillStyle = "#ffffff";  // Breaks PNG, so removed
+            //ctx.fillRect(0, 0, canvas.width, canvas.height); // Breaks PNG, so removed
             ctx.drawImage(img, 0, 0);
 
             // Sharpen the result
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const sharpenedData = applySharpen(imageData);
             ctx.putImageData(sharpenedData, 0, 0);
-
-            // Convert final to a Blob
+			
+            // Convert final to a Blob (PNG - no quality parameter needed)
             canvas.toBlob((blob) => {
                 if (blob) {
                     resolve(blob);
                 } else {
                     reject(new Error("Processing image failed."));
                 }
-            }, "image/jpeg", 1.00);
+            }, "image/png"); // Sharpening value "image/jpeg", 1.00" ignored when PNG is used
         };
         img.onerror = (error) => reject(error);
         img.src = URL.createObjectURL(file);
     });
 }
+
 
 //NEW Version - Multi-API attempts
 // ✅ UPDATED: Toggle to skip background removal API (starts as false to enable API attempts)
@@ -191,7 +193,8 @@ async function removeBackground(file) {
     const apiKeys = [
         "XLZeaz7xuaVeVxX8mPnMR7Mw",   // Primary key
         "KjPdyp9s7MMbP3H8JEcscay8",   // Secondary key
-        "o8Az4Tb8EwwF1RbxsUmw7r1z"    // Tertiary key
+        "o8Az4Tb8EwwF1RbxsUmw7r1z",    // Tertiary key
+        "frpLhcePEKLLiuBo1mwDXXtg"    // BH1@
     ];
 
     const formData = new FormData();
@@ -311,8 +314,8 @@ async function cropFaceToSquare(imageBlob) {
                 const faceWidth = maxX - minX;
                 const faceHeight = maxY - minY;
                 
-                // Expand crop size by 50% for zoom-out effect
-                const squareSize = Math.max(faceWidth, faceHeight) * 1.5;
+                // Expand crop size by 30% for zoom-out effect
+                const squareSize = Math.max(faceWidth, faceHeight) * 1.3;
 
                 const faceCenterX = minX + faceWidth / 2;
                 let faceCenterY = minY + faceHeight / 2;
@@ -337,10 +340,12 @@ async function cropFaceToSquare(imageBlob) {
                 );
 
                 //resolve(croppedCanvas.toDataURL("image/png")); // final dataURL
-                resolve(croppedCanvas.toDataURL("image/jpeg", 0.95)); // final dataURL
+                resolve(croppedCanvas.toDataURL("image/png", 0.95)); // final dataURL
+				// Sharepning value "0.95" ignored when PNG is used
             } catch (error) {
                 console.error("❌ Error during FaceMesh processing:", error);
-                resolve(canvas.toDataURL("image/jpeg", 0.95));
+                resolve(canvas.toDataURL("image/png", 0.95));
+				// Sharepning value "0.95" ignored when PNG is used
             }
         };
         img.onerror = (error) => {
