@@ -180,7 +180,68 @@ function processImage(file) {
     });
 }
 
-// Toggle to skip background removal API (set to true for testing without API)
+//NEW Version - Multi-API attempts
+// ✅ UPDATED: Toggle to skip background removal API (starts as false to enable API attempts)
+let SKIP_BG_API = false;
+
+// ✅ UPDATED: Remove background using remove.bg API with multi-key fallback
+async function removeBackground(file) {
+    console.log("🖼 Sending raw (or downscaled) image to remove.bg API...");
+
+    const apiKeys = [
+        "XLZeaz7xuaVeVxX8mPnMR7Mw",   // Primary key
+        "KjPdyp9s7MMbP3H8JEcscay8",   // Secondary key
+        "o8Az4Tb8EwwF1RbxsUmw7r1z"    // Tertiary key
+    ];
+
+    const formData = new FormData();
+    formData.append("image_file", file);
+    formData.append("size", "auto");
+
+    // ✅ Try each API key until success
+    for (let i = 0; i < apiKeys.length; i++) {
+        const removeBgApiKey = apiKeys[i];
+        console.log(`🔄 Trying Remove.bg API Key #${i + 1}`);
+		
+		// ✅ RECREATE FormData each time since fetch consumes it
+        const formData = new FormData();
+        formData.append("image_file", file);
+        formData.append("size", "auto");
+
+        try {
+            const response = await fetch("https://api.remove.bg/v1.0/removebg", {
+                method: "POST",
+                headers: { "X-Api-Key": removeBgApiKey },
+                body: formData
+            });
+
+            if (response.ok) {
+                console.log(`🎨 Removing Background via remove.bg (API Key #${i + 1} ✅ SUCCESS)`);
+                return response.blob();
+            } else {
+                const errorDetails = await response.text();
+                console.warn(`❌ API Key #${i + 1} failed: ${response.statusText}. Details: ${errorDetails}`);
+
+                // ✅ Optional: Detect quota-related errors (case-insensitive)
+                if (/quota/i.test(errorDetails)) {
+                    console.warn("⚠️ API quota reached for this key.");
+                }
+            }
+        } catch (err) {
+            console.error(`❌ Error with API Key #${i + 1}:`, err);
+        }
+    }
+
+    // ✅ All attempts failed, fallback to skipping background removal
+    console.warn("🚨 All Remove.bg API keys failed. Skipping background removal.");
+    SKIP_BG_API = true;
+    return file;  // ✅ Return original file so processing continues
+}
+
+
+
+// OLD Working version
+/* // Toggle to skip background removal API (set to true for testing without API)
 const SKIP_BG_API = true;
 
 // Remove background using remove.bg API without double-processing
@@ -202,7 +263,7 @@ async function removeBackground(file) {
     }
     console.log("✅ Received processed image from Remove.bg.");
     return response.blob();
-}
+} */
 
 
 // Crop image to a square based on FaceMesh detection (zoomed out by 30%)
@@ -249,8 +310,8 @@ async function cropFaceToSquare(imageBlob) {
                 const faceWidth = maxX - minX;
                 const faceHeight = maxY - minY;
                 
-                // Expand crop size by 20% for zoom-out effect
-                const squareSize = Math.max(faceWidth, faceHeight) * 1.2;
+                // Expand crop size by 35% for zoom-out effect
+                const squareSize = Math.max(faceWidth, faceHeight) * 1.35;
 
                 const faceCenterX = minX + faceWidth / 2;
                 let faceCenterY = minY + faceHeight / 2;
