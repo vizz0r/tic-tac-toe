@@ -918,7 +918,7 @@ function renderPlayers() {
         </div>
     `;
 
-    updateSelectionTitle();
+    updateSelectionTitle(false);
 
     // ✅ Re-bind editable spans
     uploadedPlayersContainer.querySelectorAll('.editable-text').forEach(makeSpanEditable);
@@ -964,7 +964,7 @@ function handlePlayerSelection(playerId) {
     togglePlayerSelectionClass(playerId);
 
     // ✅ Update title and start button state
-    updateSelectionTitle();
+    updateSelectionTitle(true);
 
     // ✅ Scroll only if we now have 2 players selected
     if (selectedPlayers.size === 2) {
@@ -977,9 +977,9 @@ function handlePlayerSelection(playerId) {
 
 
 
-function updateSelectionTitle() {
+function updateSelectionTitle(shouldScroll = true) {
     const titleEl = document.getElementById('selection-title');
-	const selectionTitle = document.getElementById('selection-title');
+    const selectionTitle = document.getElementById('selection-title');
 		
     console.log(`🎯 Selected Players Count: ${selectedPlayers.size}`);
 
@@ -996,16 +996,18 @@ function updateSelectionTitle() {
         startGameBtn.classList.add('visible');
 		selectionTitle.style.backgroundColor = "#deefde";
 
-        // ✅ Auto-scroll to reveal the Start Game button
-        setTimeout(() => {
-            startGameBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100); // slight delay ensures DOM is updated before scroll
+        // ✅ Scroll only if allowed
+        if (shouldScroll) {
+            setTimeout(() => {
+                startGameBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
     } else {
-        // ✅ Fail-safe
         titleEl.textContent = "Invalid Selection";
         startGameBtn.classList.remove('visible');
     }
 }
+
 
 
 ///////////////////////////////////////

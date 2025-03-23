@@ -475,7 +475,25 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 }
 
 .winning-cell {
-	background: #369f74 !important;
+	position: relative;
+	/* background: #369f74 !important; */
+}
+
+.winning-cell::after {
+    content: "\2714";
+	color: #369f74 !important;
+	font-weight: 600;
+    font-size: 68px;   /* Adjust size as needed */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+	    text-shadow:
+        -1px -1px 0 white,
+         1px -1px 0 white,
+        -1px  1px 0 white,
+         1px  1px 0 white;
+    pointer-events: none; /* Ensure click events pass through if needed */
 }
 
 /* .disabled {
