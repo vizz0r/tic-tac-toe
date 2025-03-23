@@ -104,9 +104,14 @@ function applySharpen(imageData) {
         -1,  5, -1,
          0, -1,  0 */ /* sharper */
 		 
-		0, -0.5, 0,
+		/* 0, -0.5, 0,
 		-0.5, 3, -0.5,
-		0, -0.5, 0  /* milder */
+		0, -0.5, 0 */  /* milder */
+		
+		0, -0.25, 0,
+		-0.25, 2, -0.25,
+		0, -0.25, 0  /* even gentler */
+
     ];
     const kernelSize = 3;
     const half = Math.floor(kernelSize / 2);
@@ -244,8 +249,8 @@ async function cropFaceToSquare(imageBlob) {
                 const faceWidth = maxX - minX;
                 const faceHeight = maxY - minY;
                 
-                // Expand crop size by 30% for zoom-out effect
-                const squareSize = Math.max(faceWidth, faceHeight) * 1.6;
+                // Expand crop size by 20% for zoom-out effect
+                const squareSize = Math.max(faceWidth, faceHeight) * 1.2;
 
                 const faceCenterX = minX + faceWidth / 2;
                 let faceCenterY = minY + faceHeight / 2;
@@ -341,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	let activeDetectCameraClosure = null;
 	let activeFocusListener = null;
 	let editingPlayerId = null;  // Holds the player name being edited
-
+	let activeFile = null;  // ✅ Used to track the last previewed/attached image
 	
 	function cleanupFocusListener() {
 		if (activeFocusListener) {
@@ -497,6 +502,9 @@ if (playerUpload) {
 
             // Show "File attached for preview" (not appended to fileNameDisplay)
             updateUIAfterImageSelection(imageSrc, false);
+			
+			activeFile = file;  // ✅ ✅ ✅ This line is critical for upload to see the file
+			console.log("✅ activeFile set from Browse:", activeFile);
 
             // Show the file name only
             if (fileNameDisplay && fileLabel) {
@@ -614,6 +622,9 @@ window.addEventListener("focus", activeFocusListener);
             const imageSrc = URL.createObjectURL(file);
 
             updateUIAfterImageSelection(imageSrc, true);
+			
+			activeFile = file;  // ✅ ✅ ✅ Also critical here
+			console.log("✅ activeFile set from Camera:", activeFile);
 
             window.capturedFile = file;
             cameraOpen = false;
@@ -744,7 +755,14 @@ uploadedPlayersContainer.addEventListener('click', (event) => {
     if (playerDiv) {
         if (playerDiv.classList.contains('add-new')) {
             console.log("🆕 Add New Player clicked");
-            newPlayerContainer.style.display = "inline-flex";			
+            newPlayerContainer.style.display = "inline-flex";	
+
+			// ✅ Reset playerUpload file input (to avoid persists the previous file)
+			playerUpload.value = "";
+
+			// ✅ Clear the stale capturedFile reference (to avoid holding the last camera capture)
+			window.capturedFile = null;
+			
 			window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
             return;
         } else {
@@ -757,51 +775,46 @@ uploadedPlayersContainer.addEventListener('click', (event) => {
 
 
 
-	// Upload button logic with conditional background removal API call.
+// Upload button logic with conditional background removal API call.
 uploadPlayerBtn.addEventListener("click", async () => {
     uploadPlayerBtn.textContent = "Uploading...";
-	const spinner = document.createElement("span");
+    const spinner = document.createElement("span");
     spinner.classList.add("spinner");
     uploadPlayerBtn.appendChild(spinner);
-	uploadPlayerBtn.prepend(spinner);
-	uploadPlayerBtn.style.pointerEvents = "none";
-	browseButton.style.pointerEvents = "none";
-
-    // 1) Unified fallback: either from "playerUpload" (gallery) or "window.capturedFile" (camera).
-    let file = playerUpload.files[0] || window.capturedFile;
-    if (!file) {
-        const errorMessage = isMobileDevice
-            ? "No image selected from gallery or camera."
-            : "No image selected for upload.";
-        displayMessage(errorMessage);
-        console.log("⚠️ Upload Failed - No file selected.");
-        uploadPlayerBtn.textContent = "Upload Player";
-        uploadPlayerBtn.disabled = false;
-        return;
-    }
-
-    // 2) Validate player name
-    const playerName = playerNameInput.value.trim();
-    console.log("Player name entered:", playerName);
-
-    if (!playerName) {
-        displayMessage("Please enter a player name.");
-        console.log("⚠️ Upload Failed - Missing name.");
-        uploadPlayerBtn.textContent = "Upload Player";
-        uploadPlayerBtn.disabled = false;
-        return;
-    }
-
-    // 3) Check for duplicates
-    if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
-        displayMessage(`A player named "${playerName}" already exists.`);
-        console.log(`❌ Duplicate name detected: ${playerName}`);
-        uploadPlayerBtn.textContent = "Upload Player";
-        uploadPlayerBtn.disabled = false;
-        return;
-    }
+    uploadPlayerBtn.prepend(spinner);
+    uploadPlayerBtn.style.pointerEvents = "none";
+    browseButton.style.pointerEvents = "none";
 
     try {
+        // 🔄 UPDATED: Use activeFile instead of checking upload/camera directly
+        let file = activeFile; // 🔄 <-- Now always respects last previewed image
+
+        if (!file) {
+            const errorMessage = isMobileDevice
+                ? "No image selected from gallery or camera."
+                : "No image selected for upload.";
+            displayMessage(errorMessage);
+            console.log("⚠️ Upload Failed - No file selected.");
+            return;  // 🔄 No need to reset pointerEvents here because finally runs
+        }
+
+        // 2) Validate player name
+        const playerName = playerNameInput.value.trim();
+        console.log("Player name entered:", playerName);
+
+        if (!playerName) {
+            displayMessage("Please enter a player name.");
+            console.log("⚠️ Upload Failed - Missing name.");
+            return;  // 🔄 let finally handle the button state reset
+        }
+
+        // 3) Check for duplicates
+        if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
+            displayMessage(`A player named "${playerName}" already exists.`);
+            console.log(`❌ Duplicate name detected: ${playerName}`);
+            return;  // 🔄 let finally handle the button state reset
+        }
+
         console.log("✅ Name is unique. Proceeding with image processing...");
         console.log("🛠 File Details:", file);
 
@@ -829,7 +842,7 @@ uploadPlayerBtn.addEventListener("click", async () => {
 
         // 8) Add new player and update UI
         const newPlayerId = `player_${Date.now()}`;
-		players.push({ id: newPlayerId, name: playerName, image: finalImage, isDefault: false });
+        players.push({ id: newPlayerId, name: playerName, image: finalImage, isDefault: false });
         savePlayers();
         renderPlayers();
         console.log(`✅ New Player Added: ${playerName}`);
@@ -869,11 +882,17 @@ uploadPlayerBtn.addEventListener("click", async () => {
     } finally {
         uploadPlayerBtn.textContent = "Upload Player";
         uploadPlayerBtn.disabled = false;
-		// ✅ Re-enable pointer events here
-		uploadPlayerBtn.style.pointerEvents = "auto";
-		browseButton.style.pointerEvents = "auto";
+        // ✅ Re-enable pointer events here
+        uploadPlayerBtn.style.pointerEvents = "auto";
+        browseButton.style.pointerEvents = "auto";
+
+        // 🔄 UPDATED: Clear activeFile and capturedFile after successful upload
+        activeFile = null;
+        window.capturedFile = null;
+        playerUpload.value = ""; // Optional clean-up to fully reset the file input
     }
 });
+
 
 
     function savePlayers() {
