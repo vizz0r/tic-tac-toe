@@ -197,6 +197,7 @@ async function removeBackground(file) {
     const formData = new FormData();
     formData.append("image_file", file);
     formData.append("size", "auto");
+	formData.append("format", "png");
 
     // ✅ Try each API key until success
     for (let i = 0; i < apiKeys.length; i++) {
@@ -310,8 +311,8 @@ async function cropFaceToSquare(imageBlob) {
                 const faceWidth = maxX - minX;
                 const faceHeight = maxY - minY;
                 
-                // Expand crop size by 35% for zoom-out effect
-                const squareSize = Math.max(faceWidth, faceHeight) * 1.35;
+                // Expand crop size by 50% for zoom-out effect
+                const squareSize = Math.max(faceWidth, faceHeight) * 1.5;
 
                 const faceCenterX = minX + faceWidth / 2;
                 let faceCenterY = minY + faceHeight / 2;
@@ -884,14 +885,17 @@ uploadPlayerBtn.addEventListener("click", async () => {
         const downscaledBlob = await downscaleImage(file, 1200);
 
         // 5) Conditionally remove background
-        let bgBlob;
+        /* let bgBlob;
         if (!SKIP_BG_API) {
             console.log("🎨 Removing Background via remove.bg...");
             bgBlob = await removeBackground(downscaledBlob);
         } else {
             console.log("😊 Skipping background removal API.");
             bgBlob = downscaledBlob;
-        }
+        } */
+		console.log("🎨 Processing background removal (with fallback)...");
+		const bgBlob = await removeBackground(downscaledBlob);
+
 
         // 6) Apply brightness/contrast/saturate/sharpen (single pass)
         console.log("🛠 Applying filters and sharpening...");
