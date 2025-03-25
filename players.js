@@ -71,7 +71,8 @@ function downscaleImage(file, maxDimension = 1200) {
       canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
-      ctx.imageSmoothingEnabled = false;
+      ctx.imageSmoothingEnabled = true; // Use smoothing for better downscale quality
+      ctx.imageSmoothingQuality = "high"; // Hint to the browser for best quality
       ctx.drawImage(img, 0, 0, width, height);
 
       // Convert canvas back to a Blob
@@ -116,6 +117,8 @@ function applySharpen(imageData) {
     ];
     const kernelSize = 3;
     const half = Math.floor(kernelSize / 2);
+	console.log("🔍 Applying sharpen filter...");  // Log sharpening start
+	
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             let r = 0, g = 0, b = 0;
@@ -139,10 +142,11 @@ function applySharpen(imageData) {
             output[index + 3] = src[index + 3];
         }
     }
+	
     return new ImageData(output, width, height);
 }
 
-// Global image processing: brightness(105%), contrast(105%), saturate(120%),
+// Global image processing: brightness(105%), contrast(105%), saturate(115%),
 // then apply the sharpen filter. Disables image smoothing, outputs a JPEG blob (1.0).
 function processImage(file) {
     return new Promise((resolve, reject) => {
@@ -154,15 +158,16 @@ function processImage(file) {
             const ctx = canvas.getContext("2d");
 
             // Turn off smoothing and apply CSS filters
-            ctx.imageSmoothingEnabled = false;
-            ctx.filter = "brightness(105%) contrast(105%) saturate(120%)";
+            ctx.imageSmoothingEnabled = true; // Use smoothing for better downscale quality
+			ctx.imageSmoothingQuality = "high"; // Hint to the browser for best quality
+            ctx.filter = "brightness(105%) contrast(105%) saturate(115%)";
 
             // White background fill, then draw
             //ctx.fillStyle = "#ffffff";  // Breaks PNG, so removed
             //ctx.fillRect(0, 0, canvas.width, canvas.height); // Breaks PNG, so removed
             ctx.drawImage(img, 0, 0);
 
-            // Sharpen the result
+            // Sharpen the result - not sure why this is needed as it sharpens the image a second time
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const sharpenedData = applySharpen(imageData);
             ctx.putImageData(sharpenedData, 0, 0);
@@ -184,17 +189,26 @@ function processImage(file) {
 
 //NEW Version - Multi-API attempts
 // ✅ UPDATED: Toggle to skip background removal API (starts as false to enable API attempts)
-let SKIP_BG_API = false;
+let SKIP_BG_API = false; // ✅ Set to "true" for manual testing (will skip the API)
 
 // ✅ UPDATED: Remove background using remove.bg API with multi-key fallback
 async function removeBackground(file) {
+	
+	// ✅ Manual override check
+    if (SKIP_BG_API) {
+        console.log("🚧 SKIP_BG_API is true - skipping remove.bg API call (manual override).");
+        return file;
+    }
+	
     console.log("🖼 Sending raw (or downscaled) image to remove.bg API...");
 
     const apiKeys = [
         "XLZeaz7xuaVeVxX8mPnMR7Mw",   // Primary key
         "KjPdyp9s7MMbP3H8JEcscay8",   // Secondary key
         "o8Az4Tb8EwwF1RbxsUmw7r1z",    // Tertiary key
-        "frpLhcePEKLLiuBo1mwDXXtg"    // BH1@
+        "frpLhcePEKLLiuBo1mwDXXtg",    // 4th key - BH1@
+        "Xi5T5kKerZ8pNYvTKxLYpWfS",    // 5th key - BH2 pp@
+        "eDo4LFpaAKsiC5h3CtRcqnNQ"    // 6th key - BH3 info@
     ];
 
     const formData = new FormData();
@@ -242,36 +256,8 @@ async function removeBackground(file) {
     return file;  // ✅ Return original file so processing continues
 }
 
-
-
-// OLD Working version
-/* // Toggle to skip background removal API (set to true for testing without API)
-const SKIP_BG_API = true;
-
-// Remove background using remove.bg API without double-processing
-async function removeBackground(file) {
-    console.log("🖼 Sending raw (or downscaled) image to remove.bg API...");
-    const removeBgApiKey = "XLZeaz7xuaVeVxX8mPnMR7Mw"; // Replace with your API key
-    const formData = new FormData();
-    formData.append("image_file", file);
-    formData.append("size", "auto");
-
-    const response = await fetch("https://api.remove.bg/v1.0/removebg", {
-        method: "POST",
-        headers: { "X-Api-Key": removeBgApiKey },
-        body: formData
-    });
-    if (!response.ok) {
-        const errorDetails = await response.text();
-        throw new Error(`❌ Remove.bg API Error: ${response.statusText}. Details: ${errorDetails}`);
-    }
-    console.log("✅ Received processed image from Remove.bg.");
-    return response.blob();
-} */
-
-
 // Crop image to a square based on FaceMesh detection (zoomed out by 30%)
-async function cropFaceToSquare(imageBlob) {
+/* async function cropFaceToSquare(imageBlob) {
     console.log("📸 Cropping face to square with zoom-out...");
     return new Promise((resolve) => {
         const img = new Image();
@@ -353,7 +339,115 @@ async function cropFaceToSquare(imageBlob) {
         };
         img.src = URL.createObjectURL(imageBlob);
     });
-}
+} */
+
+let human;
+
+window.addEventListener('load', async () => {
+  const waitForHuman = () => new Promise((resolve) => {
+    const check = () => {
+      if (window.Human && window.Human.Human) resolve(window.Human.Human);
+      else setTimeout(check, 50);
+    };
+    check();
+  });
+
+  const HumanConstructor = await waitForHuman(); // ✅ Grab the right class
+  human = new HumanConstructor({
+    modelBasePath: './models/',
+    cacheSensitivity: 0,
+    face: { enabled: true, mesh: true, iris: false, emotion: false },
+    body: { enabled: false },
+    hand: { enabled: false },
+    gesture: { enabled: false },
+    segmentation: { enabled: false },
+    filter: { enabled: false },
+    debug: false
+  });
+
+  await human.load();
+  console.log("✅ Human.js initialized and loaded");
+  console.log(human); // ✅ Should now print the Human instance, not undefined
+});
+
+
+
+  // Updated cropFaceToSquare with better headroom, scaling, and safety
+async function cropFaceToSquare(imageBlob) {
+  console.log("📸 Cropping face to square with Human.js...");
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0);
+
+      try {
+        if (!human) {
+          console.warn("⚠ Human.js not initialized.");
+          resolve(canvas.toDataURL("image/png"));
+          return;
+        }
+
+        console.log("🔍 Running Human.js face detection...");
+        const result = await human.detect(canvas);
+        const faces = result.face;
+
+        console.log(`🔍 Detected faces: ${faces.length}`, faces);
+
+        if (faces.length === 0) {
+          console.warn("⚠ No face detected. Returning original image.");
+          resolve(canvas.toDataURL("image/png"));
+          return;
+        }
+
+        const [boxX, boxY, boxWidth, boxHeight] = faces[0].box;
+        console.log("🎯 Face Box:", { boxX, boxY, boxWidth, boxHeight });
+
+        const scaleFactor = 2.8; // Keeps face sizing consistent
+        const calculatedSquareSize = Math.max(boxWidth, boxHeight) * scaleFactor;
+        const maxSquareSize = Math.min(canvas.width, canvas.height);
+        const squareSize = Math.min(calculatedSquareSize, maxSquareSize);
+
+        const faceCenterX = boxX + boxWidth / 2;
+
+        // ✅ Boost headroom by biasing Y more aggressively
+        let faceCenterY = boxY + boxHeight / 2 - (squareSize * 0.2);
+
+        let cropX = faceCenterX - squareSize / 2;
+        let cropY = faceCenterY - squareSize / 2;
+
+        // Clamp to image boundaries
+        cropX = Math.max(0, Math.min(cropX, canvas.width - squareSize));
+        cropY = Math.max(0, Math.min(cropY, canvas.height - squareSize));
+
+        console.log(`🟦 Cropping square | X: ${cropX}, Y: ${cropY}, Size: ${squareSize}`);
+
+        const croppedCanvas = document.createElement("canvas");
+        croppedCanvas.width = squareSize;
+        croppedCanvas.height = squareSize;
+        const croppedCtx = croppedCanvas.getContext("2d");
+        croppedCtx.imageSmoothingEnabled = true;
+        croppedCtx.drawImage(canvas, cropX, cropY, squareSize, squareSize, 0, 0, squareSize, squareSize);
+
+        resolve(croppedCanvas.toDataURL("image/png"));
+      } catch (error) {
+        console.error("❌ Error during Human.js face detection:", error);
+        resolve(canvas.toDataURL("image/png"));
+      }
+    };
+
+    img.onerror = (error) => {
+      console.error("❌ Error loading image:", error);
+      resolve(null);
+    };
+    img.src = URL.createObjectURL(imageBlob);
+  });
+} 
+
 
 //
 // Main Application Code
@@ -843,6 +937,7 @@ uploadedPlayersContainer.addEventListener('click', (event) => {
 
 
 // Upload button logic with conditional background removal API call.
+// ✅ Updated Upload button logic with safe activeFile clearing
 uploadPlayerBtn.addEventListener("click", async () => {
     uploadPlayerBtn.textContent = "Uploading...";
     const spinner = document.createElement("span");
@@ -852,9 +947,11 @@ uploadPlayerBtn.addEventListener("click", async () => {
     uploadPlayerBtn.style.pointerEvents = "none";
     browseButton.style.pointerEvents = "none";
 
+    let uploadSuccessful = false;  // ✅ Track success for proper cleanup
+
     try {
-        // 🔄 UPDATED: Use activeFile instead of checking upload/camera directly
-        let file = activeFile; // 🔄 <-- Now always respects last previewed image
+        console.log("🚀 Attempting upload. activeFile =", activeFile);
+        let file = activeFile;
 
         if (!file) {
             const errorMessage = isMobileDevice
@@ -862,7 +959,7 @@ uploadPlayerBtn.addEventListener("click", async () => {
                 : "No image selected for upload.";
             displayMessage(errorMessage);
             console.log("⚠️ Upload Failed - No file selected.");
-            return;  // 🔄 No need to reset pointerEvents here because finally runs
+            return;
         }
 
         // 2) Validate player name
@@ -872,50 +969,45 @@ uploadPlayerBtn.addEventListener("click", async () => {
         if (!playerName) {
             displayMessage("Please enter a player name.");
             console.log("⚠️ Upload Failed - Missing name.");
-            return;  // 🔄 let finally handle the button state reset
+            return;
         }
 
         // 3) Check for duplicates
         if (players.some(p => p.name.toLowerCase() === playerName.toLowerCase())) {
             displayMessage(`A player named "${playerName}" already exists.`);
             console.log(`❌ Duplicate name detected: ${playerName}`);
-            return;  // 🔄 let finally handle the button state reset
+            return;
         }
 
+        // ✅ Passed all checks - continue processing
         console.log("✅ Name is unique. Proceeding with image processing...");
         console.log("🛠 File Details:", file);
 
-        // 4) Downscale the image if it's too large (e.g., max 1200px)
+        // 4) Downscale the image if needed
         console.log("📐 Downscaling image if necessary...");
         const downscaledBlob = await downscaleImage(file, 1200);
 
-        // 5) Conditionally remove background
-        /* let bgBlob;
-        if (!SKIP_BG_API) {
-            console.log("🎨 Removing Background via remove.bg...");
-            bgBlob = await removeBackground(downscaledBlob);
-        } else {
-            console.log("😊 Skipping background removal API.");
-            bgBlob = downscaledBlob;
-        } */
-		console.log("🎨 Processing background removal (with fallback)...");
-		const bgBlob = await removeBackground(downscaledBlob);
+        // 5) Background removal
+        console.log("🎨 Processing background removal (with fallback)...");
+        const bgBlob = await removeBackground(downscaledBlob);
 
-
-        // 6) Apply brightness/contrast/saturate/sharpen (single pass)
-        console.log("🛠 Applying filters and sharpening...");
+        // 6) Apply color enhancements
+        console.log("🛠 Applying color filters...");
         const processedBlob = await processImage(bgBlob);
 
         // 7) Face crop
         console.log("🔵 Applying Face Cropping...");
         const finalImage = await cropFaceToSquare(processedBlob);
 
-        // 8) Add new player and update UI
+        // 8) Add new player
         const newPlayerId = `player_${Date.now()}`;
         players.push({ id: newPlayerId, name: playerName, image: finalImage, isDefault: false });
         savePlayers();
         renderPlayers();
         console.log(`✅ New Player Added: ${playerName}`);
+
+        // ✅ Mark success for cleanup
+        uploadSuccessful = true;
 
         // 9) Reset UI
         newPlayerContainer.style.display = "none";
@@ -934,7 +1026,7 @@ uploadPlayerBtn.addEventListener("click", async () => {
         playerNameInput.style.display = "none";
         uploadPlayerBtn.style.display = "none";
 
-        // 10) Reset tabs to "Browse" mode using a safe block
+        // 10) Reset tabs to "Browse" mode
         const tabStorage = document.getElementById('tabStorage');
         const tabCamera = document.getElementById('tabCamera');
         const tabContentStorage = document.getElementById('tabContentStorage');
@@ -947,21 +1039,24 @@ uploadPlayerBtn.addEventListener("click", async () => {
         }
 
         console.log("📂 Player image processed and UI updated.");
+
     } catch (error) {
         console.error("❌ Image Processing Failed:", error);
     } finally {
         uploadPlayerBtn.textContent = "Upload Player";
         uploadPlayerBtn.disabled = false;
-        // ✅ Re-enable pointer events here
         uploadPlayerBtn.style.pointerEvents = "auto";
         browseButton.style.pointerEvents = "auto";
 
-        // 🔄 UPDATED: Clear activeFile and capturedFile after successful upload
-        activeFile = null;
-        window.capturedFile = null;
-        playerUpload.value = ""; // Optional clean-up to fully reset the file input
+        // ✅ Only clear activeFile if the upload was successful
+        if (uploadSuccessful) {
+            activeFile = null;
+            window.capturedFile = null;
+            playerUpload.value = ""; // Optional cleanup
+        }
     }
 });
+
 
 
 

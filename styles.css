@@ -377,6 +377,8 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 /* PLayer selection */
 .player-img {
   width: 100px;
+  height: 100px;
+  object-fit: cover;  
 }
 
 /* Game board appearance */
@@ -501,7 +503,7 @@ label:has(input#newPlayerToggle):hover, #newPlayerToggle {
 } 
 
 .disabled img {
-	opacity: 0.4 !important;
+	opacity: 0.7 !important;
 }
 
 

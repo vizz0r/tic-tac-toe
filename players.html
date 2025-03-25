@@ -49,8 +49,17 @@
 <br>
 <button id="startGameBtn">Start Game</button>
 
-  <script src="players.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> <!-- TensorFlow.js base needed for FaceMesh -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script> <!-- The FaceMesh model itself for face detection -->
+<!-- TensorFlow.js - load once -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js" defer></script>
+
+<!-- Human.js - load once, latest stable -->
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.5/dist/human.js" defer></script>
+
+<!-- Your game logic / players.js AFTER dependencies -->
+<script src="players.js" defer></script>
+
+  <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script> <!-- TensorFlow.js base needed for FaceMesh -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/facemesh"></script> <!-- The FaceMesh model itself for face detection -->
+	
 </body>
 </html>
